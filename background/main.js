@@ -1,40 +1,70 @@
-// TODO: choose browserAction/ page action
-chrome.runtime.onInstalled.addListener(function () {
-  chrome.browserAction.hide();
-  
 
-  chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-    
+function getCurrentTab() {
+  return new Promise((resolve, reject) => {
+
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      var currTab = tabs[0];
+      if (currTab) {
+        // tab found, return it
+        resolve(currTab);
+      } else {
+        // exception!
+        reject('no tab is active:(');
+      }
+    }); //tabs.query
+
+  }); //new Promise
+} //get current Tab function
+
+
+function showHideActionIcon(isToShow, tabId) {
+
+  /*
+  var tabId = 0;
+  try {
+    tabId = (await getCurrentTab()).id;
+  }
+  catch (e) {
+    console.log(e);
+    return;
+  }
+*/
+  if (isToShow) {
+    console.log('showing icon');
+
+    // enable icon
+    chrome.pageAction.show(tabId);
+
+    // display enabled icon
+    chrome.pageAction.setIcon({
+      tabId: tabId,
+      path: "images/get_started128.png"
+    });
+  } else {
+    console.log('hiding icon');
+    // disable click event
+    chrome.pageAction.hide(tabId);
+
+    //set icon to appear disabled
+    chrome.pageAction.setIcon({
+      tabId: tabId,
+      path: "images/get_started128_disabled.png"
+    });
+  }
+}
+
+chrome.runtime.onInstalled.addListener(function () {
+
+  chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+
     // disable/enable action
-    request.isTaskDetail? chrome.pageAction.show() : chrome.pageAction.hide();
-    
+    showHideActionIcon(request.isTaskDetail, sender.tab.id);
+
   }); //on message
-  
+
   // not working??
   chrome.pageAction.onClicked.addListener(function () {
     console.log('ok');
-  });
+  }); //action icon clicked
 
-  /* consider use function from web page that tells you that you are ready inorder to show/hide icon */
-  /*function onWebNav(details) {
-    var refIndex = details.url.indexOf('#');
-    var strFragment = refIndex >= 0 ? details.url.slice(refIndex+1) : '';
-    console.log(strFragment);
-    if (strFragment.indexOf('taskdetail/') == 0) { // Starts with taskdetail/? show page action
-        chrome.pageAction.show(details.tabId);
-    } else {
-        chrome.pageAction.hide(details.tabId);
-    }
-  }
-
-  var filter = {
-    url: [{
-        hostEquals: 'projects.zoho.com'
-    }]
-  };
-
-  chrome.webNavigation.onCommitted.addListener(onWebNav, filter);
-  chrome.webNavigation.onHistoryStateUpdated.addListener(onWebNav, filter);
-  chrome.webNavigation.onReferenceFragmentUpdated.addListener(onWebNav, filter);
-  */
 }); //onInstalled
