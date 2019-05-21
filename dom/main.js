@@ -1,5 +1,6 @@
 console.log('wwwwwhaaat??!?');
 locationHasChanged();
+
 document.body.addEventListener("load", locationHasChanged)// on load
 
 window.addEventListener('hashchange', locationHasChanged); //url hash has changed
@@ -10,7 +11,7 @@ function locationHasChanged() {
     if (location.hash && location.hash.indexOf('taskdetail/') > 0) {
         whenTaskDetailReady().then(isReady => {
             console.log(`is task-detail ready: ${isReady}`);
-            chrome.runtime.sendMessage({ isTaskDetail: isReady });
+            chrome.runtime.sendMessage({ type: 'action-icon', isTaskDetail: isReady });
         });
     } else {
         console.log(`is task-detail ready: false`);
@@ -28,13 +29,12 @@ function whenTaskDetailReady() {
         }
 
         console.log(`trying to determine if task-detail ready ${window.taskDetailTries} times`)
-
-        let domTask = document.querySelector('#ntdetid .dt-field-label');
-        if (domTask && domTask.innerText === 'Owner') {
+        
+        if (Scraper.isLabelFieldExist('Owner')) {
             // inside task details
             resolve(true);
         } else {
-            setTimeout(whenTaskDetailReady, 200);
+            setTimeout(whenTaskDetailReady, 300);
         }
 
     }); //Promise

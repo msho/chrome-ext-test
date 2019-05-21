@@ -54,17 +54,46 @@ function showHideActionIcon(isToShow, tabId) {
 }
 
 chrome.runtime.onInstalled.addListener(function () {
+}); //onInstalled
 
-  chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+chrome.pageAction.onClicked.addListener(function () {
+  console.log('ok');
+  // TODO: get start-date, due-date, title, progect-name, user-email from 'message'
 
+  /*TODO: implemant :****
+  ** 1. domInit - from message, when page is loaded, get from scraping the start-date, due-date, title, progect-name, user-email (and url from sender?)
+  ** 2. domChanged - append event to date and when changed, send message with domChanged new event data.
+  ** 3. Implament Gcalendar.Requests.Getters.event(userEmail, domInit.url)
+  ** 4. Implament Gcalendar.Setters.createEvent(userEmail, domChanged)
+  ** 5. Implament Gcalendar.Setters.updateEvent(userEmail, domChanged)
+*/
+  //Gcalendar.Requests.Getters.calendarList
+  let gEvent = Gcalendar.Requests.Getters.event(userEmail, domInit.url);
+  if (gEvent === null) {
+    Gcalendar.Setters.createEvent(userEmail, domChanged);
+  } else {
+    Gcalendar.Setters.updateEvent(userEmail, domChanged);
+  }
+}); //action icon clicked
+
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+
+  if (!request) {
+    console.log('give me something I can work with...');
+    return;
+  }
+
+  if (request.type === 'action-icon') {
     // disable/enable action
     showHideActionIcon(request.isTaskDetail, sender.tab.id);
 
-  }); //on message
+  } else if (request.type === 'init-dom') {
+    //get dom original data
 
-  // not working??
-  chrome.pageAction.onClicked.addListener(function () {
-    console.log('ok');
-  }); //action icon clicked
+  } else if (request.type === 'changed-dom') {
+    //get dom updated data
+  } else {
+    console.log(`Wierd request ${request.type}`)
+  } // unkown request type
 
-}); //onInstalled
+}); //on message
