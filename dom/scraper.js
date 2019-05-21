@@ -96,8 +96,6 @@ class Scraper {
             let email = strTitle.substring(startEmailIndex + 1, strTitle.length - 1);
             dicUsers[username] = email;
 
-            console.log(username + ' ' + email);
-
         } // for each domSelectUsers
 
         return dicUsers;

@@ -5,6 +5,19 @@ document.body.addEventListener("load", locationHasChanged)// on load
 
 window.addEventListener('hashchange', locationHasChanged); //url hash has changed
 
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+
+    if (request.event === 'task-updated') {
+        setTimeout(function () {
+            sendResponse(Scraper.getDomData());
+        }, 300);
+
+        // tells the background reciever that a response would be sent.
+        return true;
+    }
+
+}); //onMessage from background
+
 function locationHasChanged() {
     window.taskDetailTries = 0;
 
@@ -14,12 +27,12 @@ function locationHasChanged() {
     if (location.hash && location.hash.indexOf('taskdetail/') > 0) {
 
         waitTaskDetailReady().then(isReady => {
-            if (isReady) 
+            if (isReady)
                 onTaskReady();
-            else 
+            else
                 onNotTaskPage();
         }); //task ready
-        
+
     } else {
         onNotTaskPage();
     }
@@ -32,7 +45,7 @@ function onTaskReady() {
 
     let domInit = Scraper.getDomData();
     console.log(domInit);
-    chrome.runtime.sendMessage({ isTaskDetail: false });
+    chrome.runtime.sendMessage({ type: 'init-dom', data: domInit });
 }
 
 function onNotTaskPage() {
