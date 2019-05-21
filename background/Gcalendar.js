@@ -49,17 +49,12 @@ let Gcalendar = {
             
         }   // Getters
     }, // Requests
+
     Responses: {
         calenderList: function(status, response) {
             console.log(status);
             console.log(response)
         }
-    }
-}
-
-let Gcalendar
-
-function calendarListFetched(data, data2, data3) {
-    console.log('got calendar data!!');
-    console.log(data); console.log(data2); console.log(data3);
-}
+    } // Responses
+    
+} // Gcalendar

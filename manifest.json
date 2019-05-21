@@ -10,13 +10,16 @@
         "https://projects.zoho.com/portal/grseeconsulting*"
       ],
       "js": [
+        "dom/scraper.js",
         "dom/main.js"
       ]
     }
   ],
   "permissions": [
     "identity",
-    "activeTab"
+    "activeTab",
+    "webRequest",
+    "https://projects.zoho.com/portal/grseeconsulting/updateaction.do"
   ],
   "oauth2": {
     "client_id":"302170307712-96acdij9nirukkm7mhgprmmrd2evmil7.apps.googleusercontent.com",
@@ -24,10 +27,10 @@
   },
   "background": {
     "scripts": [
-      "background/main.js",
-      "background/auth.js"
+      "background/gcalendar.js",
+      "background/main.js"
     ],
-    "persistent": false
+    "persistent": true
   },
   "page_action": {
     "default_icon": {

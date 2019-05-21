@@ -92,8 +92,19 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
   } else if (request.type === 'changed-dom') {
     //get dom updated data
+
   } else {
     console.log(`Wierd request ${request.type}`)
+
   } // unkown request type
 
 }); //on message
+
+chrome.webRequest.onCompleted.addListener(function (details) {
+  console.log(details)
+
+  // send message to content script that the dom has been updated.
+}, {
+  urls:["https://projects.zoho.com/portal/grseeconsulting/updateaction.do"], 
+  types: ["xmlhttprequest"]
+}); //webRequest done
