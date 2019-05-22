@@ -36,25 +36,72 @@ function xhrWithAuth(method, url, interactive, callback) {
         }
     }
 } //xhrWithAuth
-
+/*
+  		** 4. Implament Gcalendar.Setters.createEvent(userEmail, domChanged)
+  		** 5. Implament Gcalendar.Setters.updateEvent(userEmail, domChanged)
+*/
 let Gcalendar = {
     Requests: {
         Getters: {
+			event: async function(email, url) {
+			
+			  //email = 'rans@wirex-systems.com';
+			  //search event with url and return it
+			  return new Promise( res => {
+			    xhrWithAuth(
+			    'GET',
+			    `https://www.googleapis.com/calendar/v3/calendars/${email}/events?q=${url}`,
+			    true,
+			    function(status, response){
+				  //resolve function
+				  return res(Gcalendar.Responses.event(status, response));
+				 }) //xhrWithAuth
+				}); //Promise
+				//return null if not found
+			},
             calendarList: function(){
                 xhrWithAuth('GET',
                 'https://www.googleapis.com/calendar/v3/users/me/calendarList',
                 true,
-                Gcalendar.Responses.calenderList);    
+                Gcalendar.Responses.calenderList);
             }
             
         }   // Getters
     }, // Requests
+	
+	Setters: {
+		updateEvent: function(gEvent, data) {
+			//TODO: implament
+			console.log('set this data');
+			console.log(data);
+		}
+	},
 
     Responses: {
         calenderList: function(status, response) {
             console.log(status);
             console.log(response)
-        }
+        },
+		event: function(status, response) {
+			
+			if (!response)
+				return null;
+			
+			if (status !== 200) {
+				handleBadStatus(status, 'event', response );
+				return; //undefiend;
+			}
+			
+			let objResp = JSON.parse(response);
+			console.log(objResp);
+			
+			return objResp;
+		}
     } // Responses
-    
 } // Gcalendar
+
+function handleBadStatus(status, type, resp) {
+  // TODO: send message to content script that could not get type (maybe lack of permissions)
+	console.log('error ' + status);
+	console.log(resp);
+}

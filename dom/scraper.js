@@ -16,12 +16,13 @@ class Scraper {
 
     static getDomData() {
         return {
+			url: window.location.href,
             title: Scraper.getTitle(),
             startDate: Scraper.getStartDate(),
             dueDate: Scraper.getDueDate(),
             userEmail: Scraper.getUserEmail(),
-            //TODO:
-            projectName: Scraper.getTaskListName()
+			projectName: Scraper.getProjectName(),
+            taskListName: Scraper.getTaskListName()
         };
     }
 
@@ -31,8 +32,30 @@ class Scraper {
 
     /* *** */
 
+	static getProjectName() {
+		let domProjNameSibling = document.getElementById('menumoretabs');
+		if (!domProjNameSibling)
+			return '';
+		
+		return domProjNameSibling.nextElementSibling.innerText;
+	}
+	
     static getTaskListName() {
-        return "TODO: //"
+        let domProjList = document.getElementById('ltndisp');
+		if (!domProjList)
+			return '';
+		
+		let  strProjFullName = domProjList.innerHTML;
+		if (!strProjFullName)
+			return '';
+		
+		// strPojFullName could look like 'projName&nbsp;(external)
+		let infoIndex = strProjFullName.lastIndexOf('&nbsp;');
+		if (infoIndex === -1)
+			return strProjFullName;
+		
+		return strProjFullName.substring(0, infoIndex);
+			
     }
     static getUserEmail() {
         let ownerName = Scraper.getOwnerName();
