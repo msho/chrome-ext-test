@@ -18,6 +18,8 @@
   "permissions": [
     "identity",
     "activeTab",
+    "storage",
+    "contextMenus",
     "webRequest",
     "https://projects.zoho.com/portal/grseeconsulting/updateaction.do"
   ],
@@ -27,6 +29,7 @@
   },
   "background": {
     "scripts": [
+      "background/storage.js",
       "background/gcalendar.js",
       "background/main.js"
     ],

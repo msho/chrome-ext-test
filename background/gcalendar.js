@@ -1,4 +1,4 @@
-function xhrWithAuth(method, url, interactive, callback) {
+function xhrWithAuth(method, url, body, callback) {
     var access_token;
 
     var retry = true;
@@ -6,7 +6,7 @@ function xhrWithAuth(method, url, interactive, callback) {
     getToken();
 
     function getToken() {
-        chrome.identity.getAuthToken({ interactive: interactive }, function (token) {
+        chrome.identity.getAuthToken({ interactive: true }, function (token) {
             if (chrome.runtime.lastError) {
                 callback(chrome.runtime.lastError);
                 return;
@@ -18,12 +18,17 @@ function xhrWithAuth(method, url, interactive, callback) {
     }
 
     function requestStart() {
-        console.log(access_token);
         var xhr = new XMLHttpRequest();
+        
         xhr.open(method, url);
         xhr.setRequestHeader('Authorization', 'Bearer ' + access_token);
+        xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onload = requestComplete;
-        xhr.send();
+
+        if (body)
+            xhr.send(body);
+        else
+            xhr.send();
     }
 
     function requestComplete() {
@@ -36,72 +41,165 @@ function xhrWithAuth(method, url, interactive, callback) {
         }
     }
 } //xhrWithAuth
-/*
-  		** 4. Implament Gcalendar.Setters.createEvent(userEmail, domChanged)
-  		** 5. Implament Gcalendar.Setters.updateEvent(userEmail, domChanged)
-*/
+
 let Gcalendar = {
     Requests: {
         Getters: {
-			event: async function(email, url) {
-			
-			  //email = 'rans@wirex-systems.com';
-			  //search event with url and return it
-			  return new Promise( res => {
-			    xhrWithAuth(
-			    'GET',
-			    `https://www.googleapis.com/calendar/v3/calendars/${email}/events?q=${url}`,
-			    true,
-			    function(status, response){
-				  //resolve function
-				  return res(Gcalendar.Responses.event(status, response));
-				 }) //xhrWithAuth
-				}); //Promise
-				//return null if not found
-			},
-            calendarList: function(){
-                xhrWithAuth('GET',
-                'https://www.googleapis.com/calendar/v3/users/me/calendarList',
-                true,
-                Gcalendar.Responses.calenderList);
-            }
-            
+            event: function (email, url) {
+                //search event with url and return it
+                console.log(`searching for event with ${url}...`);
+
+                return new Promise(res => {
+                    xhrWithAuth(
+                        'GET',
+                        `https://www.googleapis.com/calendar/v3/calendars/${email}/events?q=${encodeURIComponent(url)}`,
+                        null, // no body
+                        function (status, response) {
+                            //resolve function
+                            return res(Gcalendar.Responses.event(status, response));
+                        }); //xhrWithAuth
+                }); //Promise
+                //return null if not found
+            }, //Gtters.event
+
+            calendarList: function () {
+                console.log(`getting all user calendars...`);
+                xhrWithAuth(
+                    'GET',
+                    'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+                    null, // no body
+                    Gcalendar.Responses.calenderList);
+            } // Getters.calendarList
+
         }   // Getters
-    }, // Requests
-	
-	Setters: {
-		updateEvent: function(gEvent, data) {
-			//TODO: implament
-			console.log('set this data');
-			console.log(data);
-		}
-	},
+    }, // Gcalendar.Requests
+
+    Setters: {
+        updateEvent: function (gEvent, data) {
+            console.log('updating G event...');
+            
+            xhrWithAuth(
+                'put',
+                `https://www.googleapis.com/calendar/v3/calendars/${data.userEmail}/events/${gEvent.id}`,
+                Gcalendar.Helper.convertDomDataToGevent(data),
+                Gcalendar.Responses.default);
+        }, // Setters.updateEvent
+
+        createEvent: function (data) {
+            console.log('creating new G event...');
+
+            xhrWithAuth(
+                'post',
+                `https://www.googleapis.com/calendar/v3/calendars/${data.userEmail}/events`,
+                Gcalendar.Helper.convertDomDataToGevent(data),
+                Gcalendar.Responses.default);
+        }, // Setters.create event
+    }, //Gcalendar.Setters
 
     Responses: {
-        calenderList: function(status, response) {
-            console.log(status);
-            console.log(response)
+        calenderList: function (status, response) {
+            handleResponseStatus();
         },
-		event: function(status, response) {
-			
-			if (!response)
-				return null;
-			
-			if (status !== 200) {
-				handleBadStatus(status, 'event', response );
-				return; //undefiend;
-			}
-			
-			let objResp = JSON.parse(response);
-			console.log(objResp);
-			
-			return objResp;
-		}
-    } // Responses
+        event: function (status, response) {
+
+            if (!response)
+                return null;
+
+            handleResponseStatus(status, 'event', response);
+            if (status !== 200) {
+                return; //undefiend;
+            }
+
+            let objResp = JSON.parse(response);
+            
+            if (!objResp.items || !objResp.items.length)
+                return null;
+
+            // return last item
+            return objResp.items[objResp.items.length-1];
+        }, // Responses.event
+
+        default: function (status, response) {
+            handleResponseStatus(status, '', response);
+            return; //undefiend;
+        } // Responses.default
+
+    }, // Gcalendar.Responses
+
+    Helper: {
+        convertDomDataToGevent: function (domData) {
+            let eventTitle = `${domData.title} - ${domData.taskListName} - ${domData.projectName}`;
+            let eventDesc = `Event from Zoho\n${eventTitle}\n${domData.url}`;
+            let timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+            gEevent = {
+                "start": {
+                    "dateTime": Gcalendar.Helper.convertDate(domData.startDate),
+                    "timeZone": timeZone
+                },
+                "end": {
+                    "dateTime": Gcalendar.Helper.convertDate(domData.dueDate),
+                    "timeZone": timeZone
+                },
+                "summary": eventTitle,
+                "description": eventDesc,
+                "attendees": [
+                    {
+                        "email": domData.userEmail
+                    }
+                ]
+            };
+            return JSON.stringify(gEevent);
+        }, //Helper.convertDomDataToGevent
+
+        convertDate: function (strDateTime) {
+            /***
+             * @desc Convert string date dd/MM/yyyy hh:mm into google calendar date (toISOString)
+             * @param strDateTime the date-time string to convert
+             */
+            if (!strDateTime) {
+                return new Date().toISOString();
+            }
+            let arrDate = strDateTime.split('/');
+            if (arrDate.length !== 3) {
+                console.error('bad format date ' + strDateTime);
+                return new Date().toISOString();
+            }
+            let arrYearTime = arrDate[2].split(' ');
+            let arrTime = arrYearTime[1].split(':');
+
+            let dateDay = Number(arrDate[0]);
+            let dateMonth = Number(arrDate[1]);
+
+            let dateYear = Number(arrYearTime[0]);
+
+            let dateHour = Number(arrTime[0]);
+            let dateMin = Number(arrTime[1]);
+
+            try {
+                let gDate = new Date();
+                gDate.setFullYear(dateYear, dateMonth - 1, dateDay);
+                gDate.setHours(dateHour, dateMin);
+
+                return gDate.toISOString();
+            } catch (ex) {
+                console.error('bad format date ' + strDateTime);
+                return new Date().toISOString();
+            }
+
+        } // Helper.convertDate 
+
+    } // Gcalendar.Helper
 } // Gcalendar
 
-function handleBadStatus(status, type, resp) {
-  // TODO: send message to content script that could not get type (maybe lack of permissions)
-	console.log('error ' + status);
-	console.log(resp);
+function handleResponseStatus(status, type, resp) {
+    // TODO: send message to content script that could not get type (maybe lack of permissions)
+    if (status !== 200) {
+        console.log('error ' + status);
+    }
+    if (!resp)
+        return;
+    
+    let objResp = JSON.parse(resp);
+    console.log('response from google calendar api: ');
+    console.log(objResp);
 }
