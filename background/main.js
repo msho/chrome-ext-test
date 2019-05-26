@@ -1,75 +1,5 @@
 let initDomData, changedDomData;
 
-function getCurrentTab() {
-  return new Promise((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      return resolve(tabs[0]);
-    }); //tabs.query
-
-  }); //new Promise
-} // getCurrentTab
-
-async function showHideActionIcon(isToShow, tabId) {
-  await ExStorage.setHidden(!isToShow);
-
-  chooseIcon(tabId);
-} // showHideActionIcon
-
-async function chooseIcon(tabId) {
-  let iconEnabled = !(await ExStorage.isDisabled()) && !(await ExStorage.isHidden());
-  if (!tabId) tabId = (await getCurrentTab()).id;
-
-  if (iconEnabled) {
-    console.log('showing icon');
-    chrome.pageAction.show(tabId);
-
-    // display enabled icon
-    chrome.pageAction.setIcon({
-      tabId: tabId,
-      path: "images/get_started128.png"
-    });
-
-    // if webRequest missing listener, add it 
-    if (!chrome.webRequest.onCompleted.hasListenr(onWebRequestCompleted)) {
-      chrome.webRequest.onCompleted.addListener(onWebRequestCompleted);
-    }
-
-  } else {
-    // hide icon
-    console.log('hiding icon');
-    chrome.pageAction.hide(tabId);
-
-    //set icon to appear disabled
-    chrome.pageAction.setIcon({
-      tabId: tabId,
-      path: "images/get_started128_disabled.png"
-    });
-
-    
-    // if webRequest has listener, add it 
-    if (chrome.webRequest.onCompleted.hasListenr(onWebRequestCompleted)) {
-      chrome.webRequest.onCompleted.removeListener(onWebRequestCompleted);
-    }
-    // TODO: check listenr and rules if works ://///!!!!!!!!!!!!!!!!!!!!!!!!!
-  }
-}
-
-async function menuDisableEnable(sender, tab) {
-  //get isDisabled from cache
-  let isDisabled = await ExStorage.isDisabled();
-
-  //set isDisabled to !isDisabled
-  await ExStorage.setDisabled(!isDisabled);
-
-  //update menu menuItemDisable title 
-  let menuTitle = 'Enable me';
-  if (isDisabled) menuTitle = 'Disable me';
-
-  chrome.contextMenus.update('menuItemDisable', { title: menuTitle });
-
-  chooseIcon(tab && tab.id);
-} // menuDisableEnable
-
 chrome.runtime.onInstalled.addListener(function () {
 
   // extension is enabled by default
@@ -83,12 +13,19 @@ chrome.runtime.onInstalled.addListener(function () {
     contexts: ["page_action"],
     onclick: menuDisableEnable
   });
+
+  ExStorage.set('portal-url', 'portal/grseeconsulting');
 }); //onInstalled
 
-/*chrome.pageAction.onClicked.addListener(function (sender) {
-  console.log('click ok');
+chrome.pageAction.onClicked.addListener(async function (sender) {
+  if (await ExStorage.isHidden() || await ExStorage.isDisabled()) {
+    console.log('?');
+    return;
+  }
+
   console.log(sender.tab);
-}); //action icon clicked*/
+  sendMessageToDom({ event: 'alert', text: 'I\'m enabled and ready to sync m\'lord' }, undefined, sender.tabId);
+});
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (!request) {
@@ -115,43 +52,128 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 }); //on message
 
-function onWebRequestCompleted(details){
+chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
 
-  // send message to content script that the dom has been updated.
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    
-    chrome.tabs.sendMessage(tabs[0].id, { event: "task-updated" }, async function (domData) {
-      if (!domData || !domData.startDate || !domData.dueDate) {
-        console.error('no data recieved from dom')
-        return;
-      }
-
-      console.log('recieved data from dom');
-      console.log(domData);
-      changedDomData = domData;
-
-      //Gcalendar.Requests.Getters.calendarList
-      let gEvent = await Gcalendar.Requests.Getters.event(changedDomData.userEmail, changedDomData.url);
-
-      // check if calendar event exist
-      if (gEvent === null) {
-        // event not found, create a new one
-        Gcalendar.Setters.createEvent(changedDomData);
-      } else if (gEvent) {
-        // update current event
-        Gcalendar.Setters.updateEvent(gEvent, changedDomData);
-      } else {
-        //some error
-        console.error('wierd response from google api');
-
-      } //if calendar event exist?
-
-    }); //send message to tab
-  }); //get current tab
-
-}
+  if (changeInfo.status === 'complete')
+    sendMessageToDom({ 
+      event: 'portal-url', 
+      portalUrl: await ExStorage.get('portal-url') }, null, tabId);
+}); //on tabs updated
 
 chrome.webRequest.onCompleted.addListener(onWebRequestCompleted, {
-    urls: ["https://projects.zoho.com/portal/grseeconsulting/updateaction.do"],
-    types: ["xmlhttprequest"],
-  }); //webRequest done
+  urls: [`https://projects.zoho.com/*/updateaction.do`],
+  types: ["xmlhttprequest"],
+}); //webRequest done
+
+function getCurrentTab() {
+  return new Promise((resolve) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      return resolve(tabs[0]);
+    }); //tabs.query
+
+  }); //new Promise
+} // getCurrentTab
+
+async function showHideActionIcon(isToShow, tabId) {
+  await ExStorage.setHidden(!isToShow);
+
+  disableActionButton(tabId);
+} // showHideActionIcon
+
+async function disableActionButton(tabId) {
+  let iconEnabled = !(await ExStorage.isDisabled()) && !(await ExStorage.isHidden());
+  if (!tabId) tabId = (await getCurrentTab()).id;
+
+  if (iconEnabled) {
+    console.log('showing icon');
+    chrome.pageAction.show(tabId);
+
+    // display enabled icon
+    chrome.pageAction.setIcon({
+      tabId: tabId,
+      path: "images/get_started128.png"
+    });
+    // if webRequest missing listener, add it 
+    if (!chrome.webRequest.onCompleted.hasListener(onWebRequestCompleted)) {
+      chrome.webRequest.onCompleted.addListener(onWebRequestCompleted,
+        {
+          urls: [`https://projects.zoho.com/*/updateaction.do`],
+          types: ["xmlhttprequest"],
+        });
+    }
+
+  } else {
+    // hide icon
+    console.log('hiding icon');
+    chrome.pageAction.hide(tabId);
+
+    //set icon to appear disabled
+    chrome.pageAction.setIcon({
+      tabId: tabId,
+      path: "images/get_started128_disabled.png"
+    });
+
+    // if webRequest has listener, add it 
+    if (chrome.webRequest.onCompleted.hasListener(onWebRequestCompleted)) {
+      chrome.webRequest.onCompleted.removeListener(onWebRequestCompleted);
+    }
+  }
+}
+
+async function menuDisableEnable(sender, tab) {
+  //get isDisabled from cache
+  let isDisabled = await ExStorage.isDisabled();
+
+  //set isDisabled to !isDisabled
+  await ExStorage.setDisabled(!isDisabled);
+
+  //update menu menuItemDisable title 
+  let menuTitle = 'Enable me';
+  if (isDisabled) menuTitle = 'Disable me';
+
+  chrome.contextMenus.update('menuItemDisable', { title: menuTitle });
+
+  disableActionButton(tab && tab.id);
+} // menuDisableEnable
+
+function sendMessageToDom(msg, cb, tabId) {
+  if (tabId) {
+    chrome.tabs.sendMessage(tabId, msg, cb);
+
+  } else {
+    // need to get tabId
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      chrome.tabs.sendMessage(tabs[0].id, msg, cb);
+    });
+  }
+} // sendMessageToDom
+
+function onWebRequestCompleted(details) {
+
+  sendMessageToDom({ event: "task-updated" }, async function (domData) {
+    if (!domData || !domData.startDate || !domData.dueDate) {
+      console.error('no data recieved from dom')
+      return;
+    }
+
+    console.log('recieved data from dom');
+    console.log(domData);
+    changedDomData = domData;
+
+    //Gcalendar.Requests.Getters.calendarList
+    let gEvent = await Gcalendar.Requests.Getters.event(changedDomData.userEmail, changedDomData.url);
+
+    // check if calendar event exist
+    if (gEvent === null) {
+      // event not found, create a new one
+      Gcalendar.Setters.createEvent(changedDomData);
+    } else if (gEvent) {
+      // update current event
+      Gcalendar.Setters.updateEvent(gEvent, changedDomData);
+    } else {
+      //some error
+      console.error('wierd response from google api');
+
+    } // if calendar event exist?
+  }); // sendMessageToDom
+}

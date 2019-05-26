@@ -19,7 +19,7 @@ function xhrWithAuth(method, url, body, callback) {
 
     function requestStart() {
         var xhr = new XMLHttpRequest();
-        
+
         xhr.open(method, url);
         xhr.setRequestHeader('Authorization', 'Bearer ' + access_token);
         xhr.setRequestHeader('Content-Type', 'application/json');
@@ -77,7 +77,7 @@ let Gcalendar = {
     Setters: {
         updateEvent: function (gEvent, data) {
             console.log('updating G event...');
-            
+
             xhrWithAuth(
                 'put',
                 `https://www.googleapis.com/calendar/v3/calendars/${data.userEmail}/events/${gEvent.id}`,
@@ -105,18 +105,18 @@ let Gcalendar = {
             if (!response)
                 return null;
 
-            handleResponseStatus(status, 'event', response);
+            handleResponseStatus(status, 'get-event', response);
             if (status !== 200) {
                 return; //undefiend;
             }
 
             let objResp = JSON.parse(response);
-            
+
             if (!objResp.items || !objResp.items.length)
                 return null;
 
             // return last item
-            return objResp.items[objResp.items.length-1];
+            return objResp.items[objResp.items.length - 1];
         }, // Responses.event
 
         default: function (status, response) {
@@ -192,14 +192,26 @@ let Gcalendar = {
 } // Gcalendar
 
 function handleResponseStatus(status, type, resp) {
-    // TODO: send message to content script that could not get type (maybe lack of permissions)
-    if (status !== 200) {
-        console.log('error ' + status);
-    }
-    if (!resp)
-        return;
     
+    if (status !== 200) {
+        console.log(`error: ${status} \n ${resp}`);
+
+        sendMessageToDom({
+            event: 'alert', type: 'error',
+            text: `Error from G-Calendar:  ${status}<div> ${resp} </div>`
+        });
+        return;
+    }
+
     let objResp = JSON.parse(resp);
     console.log('response from google calendar api: ');
     console.log(objResp);
-}
+
+    if (type === 'get-event')
+        return;
+
+    sendMessageToDom({
+        event: 'alert',
+        text: `Google Calendar updated successfully`
+    });
+} // handleResponseStatus

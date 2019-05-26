@@ -5,6 +5,7 @@ class ExStorage {
         });
 
     }
+    
     static set(id, val) {
         var setObj = {};
         setObj[id] = val;
