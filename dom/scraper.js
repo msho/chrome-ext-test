@@ -20,7 +20,7 @@ class Scraper {
             title: Scraper.getTitle(),
             startDate: Scraper.getStartDate(),
             dueDate: Scraper.getDueDate(),
-            userEmail: Scraper.getUserEmail(),
+            usersEmail: Scraper.getUsersEmail(),
             projectName: Scraper.getProjectName(),
             taskListName: Scraper.getTaskListName()
         };
@@ -57,9 +57,12 @@ class Scraper {
         return strProjFullName.substring(0, infoIndex);
 
     }
-    static getUserEmail() {
-        let ownerName = Scraper.getOwnerName();
-        return Scraper.getUserEmailByName(ownerName);
+    static getUsersEmail() {
+        let ownerNames = Scraper.getOwnerNames();
+        if (!ownerNames || !ownerNames.split)
+            return [];
+
+        return Scraper.getUsersEmailsByName(ownerNames.split(', '));
     }
 
     static getTitle() {
@@ -79,7 +82,7 @@ class Scraper {
 
     /* *** */
 
-    static getOwnerName() {
+    static getOwnerNames() {
         let domOwnerVal = Scraper.getValueFieldNextTo('Owner');
         if (!domOwnerVal)
             return '';
@@ -88,15 +91,21 @@ class Scraper {
         return domOwnerVal.getAttribute('data-towner');
     }
 
-    static getUserEmailByName(strUsername) {
-        if (strUsername === 'Me') {
-            if (window.Utils) {
-                return window.Utils.emailId;
-            }
-        }
-
+    static getUsersEmailsByName(arrUserNames) {
+        var arrEmails = [];
         let dicUsers = Scraper.getAllUsers();
-        return dicUsers[strUsername] || '';
+
+        for (let strUsername of arrUserNames) {
+            if (strUsername === 'Me') {
+                if (window.Utils) {
+                    arrEmails.push(window.Utils.emailId);
+                    continue;
+                }
+            }
+        
+            arrEmails.push(dicUsers[strUsername] || '');
+        }
+        return arrEmails;
     }
 
     static getAllUsers() {
@@ -121,6 +130,7 @@ class Scraper {
 
         } // for each domSelectUsers
 
+        ExStorage.set('dicNamesMail', dicUsers);
         return dicUsers;
     }
 
@@ -161,8 +171,3 @@ class Scraper {
     }
 
 } // Scraper class
-
-/*
-** 1. domInit - from message, when page is loaded, get from scraping the start-date, due-date, title, progect-name, user-email (and url from sender?)
-  ** 2. domChanged - append event to date and when changed, send message with domChanged new event data.
-  */

@@ -75,23 +75,29 @@ let Gcalendar = {
     }, // Gcalendar.Requests
 
     Setters: {
-        updateEvent: function (gEvent, data) {
+        updateEvent: function (gEvent, data, userEmail) {
             console.log('updating G event...');
+            
+            let newData = JSON.parse(JSON.stringify(data));
+            newData.userEmail = userEmail;
 
             xhrWithAuth(
                 'put',
-                `https://www.googleapis.com/calendar/v3/calendars/${data.userEmail}/events/${gEvent.id}`,
-                Gcalendar.Helper.convertDomDataToGevent(data),
+                `https://www.googleapis.com/calendar/v3/calendars/${newData.userEmail}/events/${gEvent.id}`,
+                Gcalendar.Helper.convertDomDataToGevent(newData),
                 Gcalendar.Responses.default);
         }, // Setters.updateEvent
 
-        createEvent: function (data) {
+        createEvent: function (data, userEmail) {
             console.log('creating new G event...');
+
+            let newData = JSON.parse(JSON.stringify(data));
+            newData.userEmail = userEmail;
 
             xhrWithAuth(
                 'post',
-                `https://www.googleapis.com/calendar/v3/calendars/${data.userEmail}/events`,
-                Gcalendar.Helper.convertDomDataToGevent(data),
+                `https://www.googleapis.com/calendar/v3/calendars/${newData.userEmail}/events`,
+                Gcalendar.Helper.convertDomDataToGevent(newData),
                 Gcalendar.Responses.default);
         }, // Setters.create event
     }, //Gcalendar.Setters
@@ -142,11 +148,7 @@ let Gcalendar = {
                 },
                 "summary": eventTitle,
                 "description": eventDesc,
-                "attendees": [
-                    {
-                        "email": domData.userEmail
-                    }
-                ]
+                "attendees": domData.usersEmail.map((e)=> {return {"email": e};})
             };
             return JSON.stringify(gEevent);
         }, //Helper.convertDomDataToGevent

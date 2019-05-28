@@ -43,8 +43,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
   } else if (request.type === 'changed-dom') {
     //get dom updated data
-    changedDomData = request.data;
-
+    callGcalendarApi(request.data)
   } else {
     // unkown request type
     console.log(`Wierd request ${request.type}`)
@@ -56,8 +55,9 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
 
   if (changeInfo.status === 'complete')
     sendMessageToDom({ 
-      event: 'portal-url', 
-      portalUrl: await ExStorage.get('portal-url') }, null, tabId);
+      event: 'portal-url', portalUrl: await ExStorage.get('portal-url') 
+    }, 
+      null, tabId);
 }); //on tabs updated
 
 chrome.webRequest.onCompleted.addListener(onWebRequestCompleted, {
@@ -150,30 +150,44 @@ function sendMessageToDom(msg, cb, tabId) {
 
 function onWebRequestCompleted(details) {
 
-  sendMessageToDom({ event: "task-updated" }, async function (domData) {
+  sendMessageToDom({ event: "task-updated" }, function (domData) {
     if (!domData || !domData.startDate || !domData.dueDate) {
       console.error('no data recieved from dom')
       return;
     }
 
+    if (!domData.usersEmail || !domData.usersEmail.length) {
+      console.error('no owners recieved from dom')
+      return;
+    }
+
     console.log('recieved data from dom');
     console.log(domData);
-    changedDomData = domData;
 
+    callGcalendarApi(domData)
+
+    
+  }); // sendMessageToDom
+} // onWebRequestCompleted
+
+async function callGcalendarApi(domData){
+  changedDomData = domData;
+
+  for (let userEmail of changedDomData.usersEmail) {
     //Gcalendar.Requests.Getters.calendarList
-    let gEvent = await Gcalendar.Requests.Getters.event(changedDomData.userEmail, changedDomData.url);
+    let gEvent = await Gcalendar.Requests.Getters.event(userEmail, changedDomData.url);
 
     // check if calendar event exist
     if (gEvent === null) {
       // event not found, create a new one
-      Gcalendar.Setters.createEvent(changedDomData);
+      Gcalendar.Setters.createEvent(changedDomData, userEmail);
     } else if (gEvent) {
       // update current event
-      Gcalendar.Setters.updateEvent(gEvent, changedDomData);
+      Gcalendar.Setters.updateEvent(gEvent, changedDomData, userEmail);
     } else {
       //some error
       console.error('wierd response from google api');
 
     } // if calendar event exist?
-  }); // sendMessageToDom
+}
 }
