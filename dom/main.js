@@ -41,8 +41,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 }); //onMessage from background
 
 function locationHasChanged() {
-    window.taskDetailTries = 0,
-        window.taskClendarTries = 0;
+    window.ExCal = {};
 
     // I'm not sure im at task page yet
     onNotTaskPage();
@@ -140,62 +139,3 @@ function isInCalcPage() {
 function isInTaskPage() {
     return Scraper.isLabelFieldExist('Owner') && Scraper.isElementIdExist('username');
 }
-
-/*
-function waitCalendarActivityReady() {
-    return new Promise(resolve => {
-
-        clearInterval(window.isReadyClendarInterval);
-        window.isReadyClendarInterval = setInterval(() => {
-
-			if (window.isRaceWon === true) {
-				// already found what I was looking for at another function
-				clearInterval(window.isReadyClendarInterval);
-                return resolve(false);
-			}
-
-            if (Scraper.isElementIdExist('newmeeting') && Scraper.isElementIdExist('logtimecalidfrom')) {
-                // inside task details
-				window.isRaceWon = true;
-                clearInterval(window.isReadyClendarInterval);
-                return resolve('calendarAct');
-            }
-
-            if (window.taskClendarTries++ > 10) {
-                // not task detail - return false
-                clearInterval(window.isReadyClendarInterval);
-                return resolve(false);
-            }
-
-            console.log(`waiting for task to be ready ${window.taskClendarTries} times`);
-
-        }, 200); // setInterval
-
-    }); //Promise
-} //waitCalendarActivityReady
-
-function waitTaskDetailReady() {
-    return new Promise(resolve => {
-
-        clearInterval(window.isReadyInterval);
-        window.isReadyInterval = setInterval(() => {
-
-            if (Scraper.isLabelFieldExist('Owner') && Scraper.isElementIdExist('username')) {
-                // inside task details
-                clearInterval(window.isReadyInterval);
-                return resolve('taskAct');
-            }
-
-            if (window.taskDetailTries++ > 10) {
-                // not task detail - return false
-                clearInterval(window.isReadyInterval);
-                return resolve(false);
-            }
-
-            console.log(`waiting for task to be ready ${window.taskDetailTries} times`);
-
-        }, 200); // setInterval
-
-    }); //Promise
-} //whenTaskDetailReady
-*/
