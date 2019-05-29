@@ -47,12 +47,21 @@ function locationHasChanged() {
     // I'm not sure im at task page yet
     onNotTaskPage();
 
-    if (location.hash && location.hash.indexOf('taskdetail/') > 0) {
+    if (location.hash && (
+		location.hash.indexOf('taskdetail/') > 0 ||
+	   location.hash.indexOf('todomilestones/') > 0 ||
+		location.hash.indexOf('projectcalendar/') > 0 ||
+		location.hash.indexOf('myworkcalendar') > 0
+	   )
+		) {
 
-        Promise.race([waitTaskDetailReady(), waitCalendarActivityReady()]).then(isReady => {
+		
+        Promise.race(
+			[waitActivityReady(isInCalcPage, 'calendarAct'), 
+			 waitActivityReady(isInTaskPage, 'taskAct')]
+		).then(isReady => {
             if (isReady === 'calendarAct')
-                onCalendarReady(); //TODO:<-- 
-            //need to listen to addcalendartask.do, get content and add event to url https://projects.zoho.com/${urlFromBg}#taskdetail/PROJID/PARENTID/ID
+                onCalendarReady();
             else if (isReady === 'taskAct')
                 onTaskReady();
             else
@@ -64,6 +73,11 @@ function locationHasChanged() {
     }
 
 } //locationHasChanged
+
+function onCalendarReady(){
+	console.log(`is calendar ready: true`);
+    chrome.runtime.sendMessage({ type: 'action-icon', isTaskDetail: true });
+}
 
 function onTaskReady() {
     console.log(`is task-detail ready: true`);
@@ -79,14 +93,68 @@ function onNotTaskPage() {
     chrome.runtime.sendMessage({ type: 'action-icon', isTaskDetail: false });
 }
 
+function waitActivityReady(func, strResOk) {
+	window.ExCal = window.ExCal || {};
+	window.ExCal[strResOk + 'tries'] = window.ExCal[strResOk + 'tries'] || 0;
+	
+	let intervalKey = 'isReady' + strResOk;
+	
+	return new Promise(resolve => {
+		
+        clearInterval(window.ExCal[intervalKey]);
+        window.ExCal[intervalKey] = setInterval(() => {
+			
+			if (window.ExCal.isRaceWon === true) {
+				// already found what I was looking for at another function
+				clearInterval(window.ExCal[intervalKey]);
+                return resolve(false);
+			}
+
+			if (func()) {
+                // inside activity details
+				window.ExCal.isRaceWon = true;
+                clearInterval(window.ExCal[intervalKey]);
+                return resolve(strResOk);
+            }
+
+            if (window.ExCal[strResOk + 'tries']++ > 10) {
+                // not task detail - return false
+                clearInterval(window.ExCal[intervalKey]);
+                return resolve(false);
+            }
+
+            console.log(`waiting for task to be ready ${window.ExCal[strResOk + 'tries']} times`);
+
+        }, 200); // setInterval
+
+    }); //Promise
+} // waitActivityReady
+
+function isInCalcPage() {
+	//return Scraper.isElementIdExist('newmeeting') && Scraper.isElementIdExist('logtimecalidfrom');
+	return location.hash.indexOf('projectcalendar/') > 0 ||
+		location.hash.indexOf('myworkcalendar') > 0
+}
+function isInTaskPage() {
+	return Scraper.isLabelFieldExist('Owner') && Scraper.isElementIdExist('username');
+}
+
+/*
 function waitCalendarActivityReady() {
     return new Promise(resolve => {
 
         clearInterval(window.isReadyClendarInterval);
         window.isReadyClendarInterval = setInterval(() => {
+			
+			if (window.isRaceWon === true) {
+				// already found what I was looking for at another function
+				clearInterval(window.isReadyClendarInterval);
+                return resolve(false);
+			}
 
             if (Scraper.isElementIdExist('newmeeting') && Scraper.isElementIdExist('logtimecalidfrom')) {
                 // inside task details
+				window.isRaceWon = true;
                 clearInterval(window.isReadyClendarInterval);
                 return resolve('calendarAct');
             }
@@ -128,3 +196,4 @@ function waitTaskDetailReady() {
 
     }); //Promise
 } //whenTaskDetailReady
+*/
