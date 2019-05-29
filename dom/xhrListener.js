@@ -11,25 +11,26 @@ chrome.storage.sync.get('dicNamesMail', (dicNamesMail) =>
   Data.dicNamesMail = dicNamesMail['dicNamesMail'] || {});
 
 // Determine wether to listen to ws or not
- function isExDisabled() {
-	
- 	return new Promise(resolve => {
-		if (location.hash.indexOf('todomilestones/') < 0 &&
-		location.hash.indexOf('projectcalendar/') < 0 &&
-		location.hash.indexOf('myworkcalendar') < 0)
-			return resolve(false);
-			
-		chrome.storage.sync.get('isDisabled', 
-								isDisabled => resolve(isDisabled['isDisabled'])
-							   ); //get isDisabled from storage
-	}); // return new Promise
- } // isDisabled
+function isExDisabled() {
+
+  return new Promise(resolve => {
+    if (location.hash.indexOf('todomilestones/') < 0 &&
+      location.hash.indexOf('projectcalendar/') < 0 &&
+      location.hash.indexOf('myworkcalendar') < 0 &&
+      location.hash.indexOf('myclassic') < 0)
+      return resolve(true);
+
+    chrome.storage.sync.get('isDisabled',
+      isDisabled => resolve(isDisabled['isDisabled'])
+    ); //get isDisabled from storage
+  }); // return new Promise
+} // isDisabled
 
 async function interceptData() {
-	let isDisabled = await isExDisabled();
-	if (isDisabled)
-		return;
-	
+  let isDisabled = await isExDisabled();
+  if (isDisabled)
+    return;
+
   var xhrOverrideScript = document.createElement('script');
   xhrOverrideScript.type = 'text/javascript';
   xhrOverrideScript.innerHTML = `
@@ -78,11 +79,11 @@ function scrapeData() {
 
   var resp = JSON.parse(responseContainingEle.innerHTML);
   if (resp[0]) {
-  	resp = resp[0]
-  } else if (!resp.TYPE || resp.TYPE !=='task') {
-	  return finishScrape(responseContainingEle);
+    resp = resp[0]
+  } else if (!resp.TYPE || resp.TYPE !== 'task') {
+    return finishScrape(responseContainingEle);
   }
-	  
+
   console.log('yeahjjjjjjjjjjjjjj');
 
   var objRet;
@@ -93,16 +94,16 @@ function scrapeData() {
   else if (resp.GANTTTASK)
     objRet = XhrScrapper.getTaskFromGan(resp.GANTTTASK);
   else if (resp.ID)
-	  objRet = XhrScrapper.getTaskFromSimple(resp);
-	
+    objRet = XhrScrapper.getTaskFromSimple(resp);
+
   else //objRet not valid
     return finishScrape(responseContainingEle);
 
-	if (!objRet.taskListName)
-  		objRet.taskListName = resp.TLISTNAME;
-	
-	if (!objRet.url)
-  		objRet.url = `https://projects.zoho.com/${Data.portalUrl}#taskdetail/${resp.PID}/${resp.NEXT}/${resp.ADDEDTODOTASK}`;
+  if (!objRet.taskListName)
+    objRet.taskListName = resp.TLISTNAME;
+
+  if (!objRet.url)
+    objRet.url = `https://projects.zoho.com/${Data.portalUrl}#taskdetail/${resp.PID}/${resp.NEXT}/${resp.ADDEDTODOTASK}`;
 
   // send message to BG! apply google calendar API!
   if (objRet.startDate && objRet.dueDate && objRet.usersEmail) {
@@ -128,21 +129,21 @@ requestIdleCallback(scrapeData);
 
 var XhrScrapper = function () {
 
-	function getDicIdToUser(){
-		var dicIdUser = {};
-		var options = document.querySelectorAll('select#personresponsible option ');
-		
-		for (let o of options) {
-			let username = o.getAttribute('title');
-			let id = o.getAttribute('value') || o.innerText;
-			
-			if (username && id)
-				dicIdUser[id] = username;
-		}
-		
-		return dicIdUser;
-	}
-	
+  function getDicIdToUser() {
+    var dicIdUser = {};
+    var options = document.querySelectorAll('select#personresponsible option ');
+
+    for (let o of options) {
+      let username = o.getAttribute('title');
+      let id = o.getAttribute('value') || o.innerText;
+
+      if (username && id)
+        dicIdUser[id] = username;
+    }
+
+    return dicIdUser;
+  }
+
   function getUsersByNames(strNames) {
     // strNames is csv names
     if (!strNames || !strNames.split)
@@ -154,41 +155,41 @@ var XhrScrapper = function () {
 
     for (let strUsername of arrNames) {
 
-		let email = getEmailByUsername(strUsername.trim());
-		
-		if (email)
-      		arrEmails.push(email);
+      let email = getEmailByUsername(strUsername.trim());
+
+      if (email)
+        arrEmails.push(email);
     }
 
     return arrEmails;
   }
-	
-	function getEmailByUsername(strUsername) {
-		let email = Data.dicNamesMail[strUsername];
-      	if (!email) {
-        	email = getEmailFromClient(strUsername);
-      	}
-		return email;
-	}
-	
-	function getUsersByIds(arrIds) {
-		var emails = [];
-		
-		var dicIdToUser = getDicIdToUser();
-		
-		for (let id of arrIds) {
-			var user = dicIdToUser[id];
-			
-			if (!user || !user.trim) 
-				continue;
-			
-			let email = getEmailByUsername(user.trim());
-			if (email)
-				emails.push();
-		}
-		
-		return emails;
-	}
+
+  function getEmailByUsername(strUsername) {
+    let email = Data.dicNamesMail[strUsername];
+    if (!email) {
+      email = getEmailFromClient(strUsername);
+    }
+    return email;
+  }
+
+  function getUsersByIds(arrIds) {
+    var emails = [];
+
+    var dicIdToUser = getDicIdToUser();
+
+    for (let id of arrIds) {
+      var user = dicIdToUser[id];
+
+      if (!user || !user.trim)
+        continue;
+
+      let email = getEmailByUsername(user.trim());
+      if (email)
+        emails.push();
+    }
+
+    return emails;
+  }
 
   function getProjectName() {
     let domProjNameSibling = document.getElementById('menumoretabs');
@@ -237,21 +238,21 @@ var XhrScrapper = function () {
     return `${day}/${month}/${year} ${hour}:${minutes}`;
 
   }
-	
-	function getTaskListName(){
-		var domTaskListName = document.getElementById('tlistdispid');
-		if (!domTaskListName || !domTaskListName.innerText)
-			return '';
-		
-		var taskListName = domTaskListName.innerText;
-		
-		// remove last (list-name) from 'list-name (list-name)';
-		var startIndex = taskListName.lastIndexOf(' (');
-		if (startIndex>0)
-			taskListName = taskListName.substring(0, startIndex);
-		
-		return taskListName;
-	}
+
+  function getTaskListName() {
+    var domTaskListName = document.getElementById('tlistdispid');
+    if (!domTaskListName || !domTaskListName.innerText)
+      return '';
+
+    var taskListName = domTaskListName.innerText;
+
+    // remove last (list-name) from 'list-name (list-name)';
+    var startIndex = taskListName.lastIndexOf(' (');
+    if (startIndex > 0)
+      taskListName = taskListName.substring(0, startIndex);
+
+    return taskListName;
+  }
 
   function getTaskFromTasks(tsk) {
     return {
@@ -272,33 +273,33 @@ var XhrScrapper = function () {
       projectName: getProjectName()
     };
   }
-	
+
   function getTaskFromSimple(tsk) {
 
-	return {
+    return {
       title: tsk.TITLE,
       startDate: tsk.COMPSD,
       dueDate: tsk.COMPSD,
       usersEmail: getUsersByIds(tsk.OWNER), // OWNER is array of ids
       projectName: tsk.PROJNAME,
-		  url: `https://projects.zoho.com/${Data.portalUrl}#taskdetail/${tsk.PROJID}/${tsk.PARENTID}/${tsk.ID}`,
-		  taskListName: getTaskListName()
+      url: `https://projects.zoho.com/${Data.portalUrl}#taskdetail/${tsk.PROJID}/${tsk.PARENTID}/${tsk.ID}`,
+      taskListName: getTaskListName()
     };
   }
 
   return {
     getTaskFromGan: getTaskFromGan,
     getTaskFromTasks: getTaskFromTasks,
-	  getTaskFromSimple: getTaskFromSimple
+    getTaskFromSimple: getTaskFromSimple
   };
 
 }(); // XhrScraper
 
 function getEmailFromClient(strUsername) {
   //get email from user
-	if (!strUsername)
-		return '';
-	
+  if (!strUsername)
+    return '';
+
   var email = prompt(`Please enter email of ${strUsername}`);
   if (!email)
     return '';

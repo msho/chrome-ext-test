@@ -41,25 +41,26 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 }); //onMessage from background
 
 function locationHasChanged() {
-    window.taskDetailTries = 0, 
-    window.taskClendarTries = 0;
+    window.taskDetailTries = 0,
+        window.taskClendarTries = 0;
 
     // I'm not sure im at task page yet
     onNotTaskPage();
 
     if (location.hash && (
-		location.hash.indexOf('taskdetail/') > 0 ||
-	   location.hash.indexOf('todomilestones/') > 0 ||
-		location.hash.indexOf('projectcalendar/') > 0 ||
-		location.hash.indexOf('myworkcalendar') > 0
-	   )
-		) {
+        location.hash.indexOf('taskdetail/') > 0 ||
+        location.hash.indexOf('todomilestones/') > 0 ||
+        location.hash.indexOf('projectcalendar/') > 0 ||
+        location.hash.indexOf('myworkcalendar') > 0 ||
+        location.hash.indexOf('myclassic') > 0
+    )
+    ) {
 
-		
+
         Promise.race(
-			[waitActivityReady(isInCalcPage, 'calendarAct'), 
-			 waitActivityReady(isInTaskPage, 'taskAct')]
-		).then(isReady => {
+            [waitActivityReady(isInCalcPage, 'calendarAct'),
+            waitActivityReady(isInTaskPage, 'taskAct')]
+        ).then(isReady => {
             if (isReady === 'calendarAct')
                 onCalendarReady();
             else if (isReady === 'taskAct')
@@ -74,8 +75,8 @@ function locationHasChanged() {
 
 } //locationHasChanged
 
-function onCalendarReady(){
-	console.log(`is calendar ready: true`);
+function onCalendarReady() {
+    console.log(`is calendar ready: true`);
     chrome.runtime.sendMessage({ type: 'action-icon', isTaskDetail: true });
 }
 
@@ -94,25 +95,25 @@ function onNotTaskPage() {
 }
 
 function waitActivityReady(func, strResOk) {
-	window.ExCal = window.ExCal || {};
-	window.ExCal[strResOk + 'tries'] = window.ExCal[strResOk + 'tries'] || 0;
-	
-	let intervalKey = 'isReady' + strResOk;
-	
-	return new Promise(resolve => {
-		
+    window.ExCal = window.ExCal || {};
+    window.ExCal[strResOk + 'tries'] = window.ExCal[strResOk + 'tries'] || 0;
+
+    let intervalKey = 'isReady' + strResOk;
+
+    return new Promise(resolve => {
+
         clearInterval(window.ExCal[intervalKey]);
         window.ExCal[intervalKey] = setInterval(() => {
-			
-			if (window.ExCal.isRaceWon === true) {
-				// already found what I was looking for at another function
-				clearInterval(window.ExCal[intervalKey]);
-                return resolve(false);
-			}
 
-			if (func()) {
+            if (window.ExCal.isRaceWon === true) {
+                // already found what I was looking for at another function
+                clearInterval(window.ExCal[intervalKey]);
+                return resolve(false);
+            }
+
+            if (func()) {
                 // inside activity details
-				window.ExCal.isRaceWon = true;
+                window.ExCal.isRaceWon = true;
                 clearInterval(window.ExCal[intervalKey]);
                 return resolve(strResOk);
             }
@@ -131,12 +132,13 @@ function waitActivityReady(func, strResOk) {
 } // waitActivityReady
 
 function isInCalcPage() {
-	//return Scraper.isElementIdExist('newmeeting') && Scraper.isElementIdExist('logtimecalidfrom');
-	return location.hash.indexOf('projectcalendar/') > 0 ||
-		location.hash.indexOf('myworkcalendar') > 0
+    //return Scraper.isElementIdExist('newmeeting') && Scraper.isElementIdExist('logtimecalidfrom');
+    return location.hash.indexOf('projectcalendar/') > 0 ||
+        location.hash.indexOf('myworkcalendar') > 0 ||
+        location.hash.indexOf('myclassic') > 0
 }
 function isInTaskPage() {
-	return Scraper.isLabelFieldExist('Owner') && Scraper.isElementIdExist('username');
+    return Scraper.isLabelFieldExist('Owner') && Scraper.isElementIdExist('username');
 }
 
 /*
@@ -145,7 +147,7 @@ function waitCalendarActivityReady() {
 
         clearInterval(window.isReadyClendarInterval);
         window.isReadyClendarInterval = setInterval(() => {
-			
+
 			if (window.isRaceWon === true) {
 				// already found what I was looking for at another function
 				clearInterval(window.isReadyClendarInterval);

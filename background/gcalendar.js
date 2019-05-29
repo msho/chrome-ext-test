@@ -196,7 +196,7 @@ let Gcalendar = {
 function handleResponseStatus(status, type, resp) {
     
     if (status !== 200) {
-        console.log(`error: ${status} \n ${resp}`);
+        console.error(`error: ${status} \n ${resp}`);
 
         sendMessageToDom({
             event: 'alert', type: 'error',
@@ -209,6 +209,7 @@ function handleResponseStatus(status, type, resp) {
     console.log('response from google calendar api: ');
     console.log(objResp);
 
+    // Do not update dom if get-event feched successfully
     if (type === 'get-event')
         return;
 

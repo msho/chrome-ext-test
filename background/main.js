@@ -186,7 +186,7 @@ async function callGcalendarApi(domData){
       Gcalendar.Setters.updateEvent(gEvent, changedDomData, userEmail);
     } else {
       //some error
-      console.error('wierd response from google api');
+      console.error('weired response from google api: ');
 
     } // if calendar event exist?
 }
