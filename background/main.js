@@ -132,6 +132,8 @@ async function menuDisableEnable(sender, tab) {
   if (isDisabled) menuTitle = 'Disable me';
 
   chrome.contextMenus.update('menuItemDisable', { title: menuTitle });
+	
+	sendMessageToDom({'event': 'disabled-from-menu', data: !isDisabled}, null, tab && tab.id);
 
   disableActionButton(tab && tab.id);
 } // menuDisableEnable

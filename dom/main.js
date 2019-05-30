@@ -1,7 +1,7 @@
 console.log('wwwwwhaaat??!?');
 locationHasChanged();
 
-function displayMessage(msg, type) {
+var displayMessage = displayMessage || function(msg, type) {
     let domMsg = document.createElement('div');
     let height = 30;
     let alertsCount = document.getElementsByClassName('sync-alert').length;

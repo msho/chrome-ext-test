@@ -1,24 +1,32 @@
 /*** 
- *  TODO: 
- * ** when enabling extention, add note to user that page need reload if its url hash contains 'projectcalendar' || 'myworkcalendar', || 'todomilestones'
+ *  TODO:
  * ** do not forget to add images and check all... 
  * */
 var Data = {};
+
 chrome.storage.sync.get('portalUrl', (portalUrl) =>
   Data.portalUrl = portalUrl['portalUrl']);
 
 chrome.storage.sync.get('dicNamesMail', (dicNamesMail) =>
   Data.dicNamesMail = dicNamesMail['dicNamesMail'] || {});
 
+function isUrlForWsScraping() {
+	return (location.hash.indexOf('todomilestones/') > 0 ||
+			location.hash.indexOf('projectcalendar/') > 0 ||
+			location.hash.indexOf('myworkcalendar') > 0 ||
+			location.hash.indexOf('myclassic') > 0)
+}
 // Determine wether to listen to ws or not
 function isExDisabled() {
 
   return new Promise(resolve => {
-    if (location.hash.indexOf('todomilestones/') < 0 &&
-      location.hash.indexOf('projectcalendar/') < 0 &&
-      location.hash.indexOf('myworkcalendar') < 0 &&
-      location.hash.indexOf('myclassic') < 0)
+    /*if (!isUrlForWsScraping())
       return resolve(true);
+	   ^ ^ ^ ^
+	  * * apperantly, the page is not refreshed, that said, 
+	  * * xhrOverrideScript is called only once at page load 
+	  * * so look for page location is not the correct way to go
+	  */
 
     chrome.storage.sync.get('isDisabled',
       isDisabled => resolve(isDisabled['isDisabled'])
@@ -26,16 +34,83 @@ function isExDisabled() {
   }); // return new Promise
 } // isDisabled
 
+function handleExDisabled(){
+	//listen if EX is enabled again
+	console.log('disabled for xhr listening');
+	Data.isFirstTimeDisabled = true;
+} // handleExDisabled
+
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+
+	//handle disabled from menu events
+	if (request.event === 'disabled-from-menu') 
+		onDisabledFromMenuChanged(request.data);
+	
+	// handle url change (portal-url happend when url changed)
+	else if (request.event === 'portal-url')
+		onUrlChanged();
+
+		
+}); // on message from BG
+
+function enableCallingScrapeData(showLogs){
+	if (showLogs)
+		console.log('enable scrape XHR WS data');
+	
+	Data.isCallingScrapeData = true;
+  	requestIdleCallback(scrapeData);
+}
+function onUrlChanged(){
+	// url is ok for scraping
+	if (Data.isCallingScrapeData === false && isUrlForWsScraping()) {
+		enableCallingScrapeData(true);
+	}
+}
+
+function onDisabledFromMenuChanged(isDisabled) {
+	// if script is not injected due to disabled ex (and user enable it)
+	if (Data.isFirstTimeDisabled && !isDisabled && !Data.isRefreshMessageShown) {
+		// it is enabled! tell user to refresh if he want it to sync calendar again
+		displayMessage('For syncing newly created Zoho-tasks from this page to Google Cleandar<br /> one must refresh the page','warning', 10000);
+		Data.isRefreshMessageShown = true;
+	}
+	
+	// if ex was disabled and now enabled -> enable call scrapeData again
+	if (Data.isCallingScrapeData === false && !isDisabled) {
+		enableCallingScrapeData(true);
+	}
+	
+	Data.disableFromMenu = isDisabled;
+}
+
+var displayMessage = displayMessage || function(msg, type, msStay) {
+    let domMsg = document.createElement('div');
+    let height = 30;
+    let alertsCount = document.getElementsByClassName('sync-alert').length;
+    let bgColor = (type === 'error') ? '#F08080' : '#90EE90'
+    height = 2 * height * alertsCount + height;
+
+    domMsg.setAttribute('class', 'sync-alert');
+    domMsg.style = `position:fixed;left: 130px; top: ${height}px;background-color: ${bgColor};padding: 10px; height: 30px;z-index:99999;`
+    domMsg.innerHTML = msg;
+
+    document.body.appendChild(domMsg);
+    setTimeout(() => document.body.removeChild(domMsg), msStay || 5000);
+}
+
 async function interceptData() {
   let isDisabled = await isExDisabled();
-  if (isDisabled)
-    return;
+  if (isDisabled) {
+	  // if EX(tension) disabled, do not listen to ws. 
+	  // if enabled again, tell client to refresh in order to listen to ws again
+    return handleExDisabled();
+  }
 
   var xhrOverrideScript = document.createElement('script');
   xhrOverrideScript.type = 'text/javascript';
   xhrOverrideScript.innerHTML = `
     (function() {
-      console.log('creating xhr script listener')
+      console.log('creating xhr script listener');
       var XHR = XMLHttpRequest.prototype;
       var send = XHR.send;
       var open = XHR.open;
@@ -63,6 +138,7 @@ async function interceptData() {
     `
   document.head.prepend(xhrOverrideScript);
 }
+
 function checkForDOM() {
   if (document.body && document.head) {
     interceptData();
@@ -73,6 +149,9 @@ function checkForDOM() {
 requestIdleCallback(checkForDOM);
 
 function scrapeData() {
+	
+	Data.isCallingScrapeData = false;
+	
   var responseContainingEle = document.getElementById('__interceptedData');
   if (!responseContainingEle)
     return finishScrape();
@@ -122,9 +201,14 @@ function finishScrape(responseContainingEle) {
   if (responseContainingEle)
     document.body.removeChild(responseContainingEle);
 
-  requestIdleCallback(scrapeData);
+	if (!Data.disableFromMenu && isUrlForWsScraping()) {
+		enableCallingScrapeData();
+	} else {
+		console.log('disable scrape XHR WS data');
+	}
 }
 
+Data.isCallingScrapeData = true;
 requestIdleCallback(scrapeData);
 
 var XhrScrapper = function () {
