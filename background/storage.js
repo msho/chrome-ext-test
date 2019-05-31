@@ -5,12 +5,12 @@ class ExStorage {
         });
 
     }
-    
+
     static set(id, val) {
         var setObj = {};
         setObj[id] = val;
         return new Promise(res => {
-            chrome.storage.sync.set(setObj, () =>res(true));
+            chrome.storage.sync.set(setObj, () => res(true));
         });
     } //ExStorage.set
 
@@ -27,7 +27,7 @@ class ExStorage {
         await ExStorage.set('isHidden', isHidden);
     }
 
-    static async isHidden(){
+    static async isHidden() {
         return await ExStorage.get('isHidden');
     }
 }

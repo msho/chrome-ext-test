@@ -54,9 +54,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
 
   if (changeInfo.status === 'complete')
-    sendMessageToDom({ 
-      event: 'portal-url', portalUrl: await ExStorage.get('portal-url') 
-    }, 
+    sendMessageToDom({
+      event: 'portal-url', portalUrl: await ExStorage.get('portal-url')
+    },
       null, tabId);
 }); //on tabs updated
 
@@ -132,8 +132,8 @@ async function menuDisableEnable(sender, tab) {
   if (isDisabled) menuTitle = 'Disable me';
 
   chrome.contextMenus.update('menuItemDisable', { title: menuTitle });
-	
-	sendMessageToDom({'event': 'disabled-from-menu', data: !isDisabled}, null, tab && tab.id);
+
+  sendMessageToDom({ 'event': 'disabled-from-menu', data: !isDisabled }, null, tab && tab.id);
 
   disableActionButton(tab && tab.id);
 } // menuDisableEnable
@@ -168,14 +168,28 @@ function onWebRequestCompleted(details) {
 
     callGcalendarApi(domData)
 
-    
+
   }); // sendMessageToDom
 } // onWebRequestCompleted
 
-async function callGcalendarApi(domData){
+async function callGcalendarApi(domData) {
+  /**
+   * Search for event in the Google Calendar,
+   * * if found, edit it, otherwise, create new Google Caledar event
+   */
   changedDomData = domData;
 
+  if (!changedDomData.url || !changedDomData.startDate || changedDomData.startDate.length<2 || !changedDomData.dueDate) {
+    console.log('not enough data for google calledar');
+    return;
+  }
+
   for (let userEmail of changedDomData.usersEmail) {
+    if (!userEmail) {
+      console.log('not enough data for google calledar');
+      continue;
+    }
+
     //Gcalendar.Requests.Getters.calendarList
     let gEvent = await Gcalendar.Requests.Getters.event(userEmail, changedDomData.url);
 
@@ -191,5 +205,5 @@ async function callGcalendarApi(domData){
       console.error('weired response from google api: ');
 
     } // if calendar event exist?
-}
+  }
 }

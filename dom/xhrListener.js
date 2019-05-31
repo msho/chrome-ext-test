@@ -11,11 +11,13 @@ chrome.storage.sync.get('dicNamesMail', (dicNamesMail) =>
   Data.dicNamesMail = dicNamesMail['dicNamesMail'] || {});
 
 function isUrlForWsScraping() {
-	return (location.hash.indexOf('todomilestones/') > 0 ||
-			location.hash.indexOf('projectcalendar/') > 0 ||
-			location.hash.indexOf('myworkcalendar') > 0 ||
-			location.hash.indexOf('myclassic') > 0)
+  return location.hash.indexOf('todomilestones/') > 0 ||
+    location.hash.indexOf('projectcalendar/') > 0 ||
+    location.hash.indexOf('myworkcalendar') > 0 ||
+    location.hash.indexOf('myclassic') > 0 ||
+    location.hash.indexOf('tasklistdetail/') > 0
 }
+
 // Determine wether to listen to ws or not
 function isExDisabled() {
 
@@ -28,81 +30,82 @@ function isExDisabled() {
 	  * * so look for page location is not the correct way to go
 	  */
 
+    // XHR listener is disdabled if extension is disabled, so reload is needed if extension is enabled again.
     chrome.storage.sync.get('isDisabled',
       isDisabled => resolve(isDisabled['isDisabled'])
     ); //get isDisabled from storage
   }); // return new Promise
 } // isDisabled
 
-function handleExDisabled(){
-	//listen if EX is enabled again
-	console.log('disabled for xhr listening');
-	Data.isFirstTimeDisabled = true;
+function handleExDisabled() {
+  //listen if EX is enabled again
+  console.log('disabled for xhr listening');
+  Data.isFirstTimeDisabled = true;
 } // handleExDisabled
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
-	//handle disabled from menu events
-	if (request.event === 'disabled-from-menu') 
-		onDisabledFromMenuChanged(request.data);
-	
-	// handle url change (portal-url happend when url changed)
-	else if (request.event === 'portal-url')
-		onUrlChanged();
+  //handle disabled from menu events
+  if (request.event === 'disabled-from-menu')
+    onDisabledFromMenuChanged(request.data);
 
-		
+  // handle url change (portal-url happend when url changed)
+  else if (request.event === 'portal-url')
+    onUrlChanged();
+
+
 }); // on message from BG
 
-function enableCallingScrapeData(showLogs){
-	if (showLogs)
-		console.log('enable scrape XHR WS data');
-	
-	Data.isCallingScrapeData = true;
-  	requestIdleCallback(scrapeData);
+function enableCallingScrapeData(showLogs) {
+  if (showLogs)
+    console.log('enable scrape XHR WS data');
+
+  Data.isCallingScrapeData = true;
+  requestIdleCallback(scrapeData);
 }
-function onUrlChanged(){
-	// url is ok for scraping
-	if (Data.isCallingScrapeData === false && isUrlForWsScraping()) {
-		enableCallingScrapeData(true);
-	}
+function onUrlChanged() {
+  // url is ok for scraping
+  if (Data.isCallingScrapeData === false && isUrlForWsScraping() && !Data.disableFromMenu) {
+    enableCallingScrapeData(true);
+  }
 }
 
 function onDisabledFromMenuChanged(isDisabled) {
-	// if script is not injected due to disabled ex (and user enable it)
-	if (Data.isFirstTimeDisabled && !isDisabled && !Data.isRefreshMessageShown) {
-		// it is enabled! tell user to refresh if he want it to sync calendar again
-		displayMessage('For syncing newly created Zoho-tasks from this page to Google Cleandar<br /> one must refresh the page','warning', 10000);
-		Data.isRefreshMessageShown = true;
-	}
-	
-	// if ex was disabled and now enabled -> enable call scrapeData again
-	if (Data.isCallingScrapeData === false && !isDisabled) {
-		enableCallingScrapeData(true);
-	}
-	
-	Data.disableFromMenu = isDisabled;
+  // if script is not injected due to disabled ex (and user enable it)
+  if (Data.isFirstTimeDisabled && !isDisabled && !Data.isRefreshMessageShown) {
+    // it is enabled! tell user to refresh if he want it to sync calendar again
+    displayMessage('For syncing newly created Zoho-tasks from this page to Google Cleandar<br /> one must refresh the page', 'warning', 10000);
+    Data.isRefreshMessageShown = true;
+  }
+
+  // if ex was disabled and now enabled -> enable call scrapeData again
+  if (Data.isCallingScrapeData === false && !isDisabled) {
+    enableCallingScrapeData(true);
+  }
+
+  Data.disableFromMenu = isDisabled;
 }
 
-var displayMessage = displayMessage || function(msg, type, msStay) {
-    let domMsg = document.createElement('div');
-    let height = 30;
-    let alertsCount = document.getElementsByClassName('sync-alert').length;
-    let bgColor = (type === 'error') ? '#F08080' : '#90EE90'
-    height = 2 * height * alertsCount + height;
+var displayMessage = displayMessage || function (msg, type, msStay) {
+  let domMsg = document.createElement('div');
+  let height = 30;
+  let alertsCount = document.getElementsByClassName('sync-alert').length;
+  let bgColor = (type === 'error') ? '#F08080' : '#90EE90'
+  height = 2 * height * alertsCount + height;
 
-    domMsg.setAttribute('class', 'sync-alert');
-    domMsg.style = `position:fixed;left: 130px; top: ${height}px;background-color: ${bgColor};padding: 10px; height: 30px;z-index:99999;`
-    domMsg.innerHTML = msg;
+  domMsg.setAttribute('class', 'sync-alert');
+  domMsg.style = `position:fixed;left: 130px; top: ${height}px;background-color: ${bgColor};padding: 10px; height: 30px;z-index:99999;`
+  domMsg.innerHTML = msg;
 
-    document.body.appendChild(domMsg);
-    setTimeout(() => document.body.removeChild(domMsg), msStay || 5000);
+  document.body.appendChild(domMsg);
+  setTimeout(() => document.body.removeChild(domMsg), msStay || 5000);
 }
 
 async function interceptData() {
   let isDisabled = await isExDisabled();
   if (isDisabled) {
-	  // if EX(tension) disabled, do not listen to ws. 
-	  // if enabled again, tell client to refresh in order to listen to ws again
+    // if EX(tension) disabled, do not listen to ws. 
+    // if enabled again, tell client to refresh in order to listen to ws again
     return handleExDisabled();
   }
 
@@ -149,9 +152,9 @@ function checkForDOM() {
 requestIdleCallback(checkForDOM);
 
 function scrapeData() {
-	
-	Data.isCallingScrapeData = false;
-	
+
+  Data.isCallingScrapeData = false;
+
   var responseContainingEle = document.getElementById('__interceptedData');
   if (!responseContainingEle)
     return finishScrape();
@@ -185,7 +188,7 @@ function scrapeData() {
     objRet.url = `https://projects.zoho.com/${Data.portalUrl}#taskdetail/${resp.PID}/${resp.NEXT}/${resp.ADDEDTODOTASK}`;
 
   // send message to BG! apply google calendar API!
-  if (objRet.startDate && objRet.dueDate && objRet.usersEmail) {
+  if (objRet.startDate && objRet.startDate.length > 1  && objRet.dueDate.trim('-') && objRet.usersEmail) {
     chrome.runtime.sendMessage({ type: 'changed-dom', data: objRet });
   }
 
@@ -201,11 +204,11 @@ function finishScrape(responseContainingEle) {
   if (responseContainingEle)
     document.body.removeChild(responseContainingEle);
 
-	if (!Data.disableFromMenu && isUrlForWsScraping()) {
-		enableCallingScrapeData();
-	} else {
-		console.log('disable scrape XHR WS data');
-	}
+  if (!Data.disableFromMenu && isUrlForWsScraping()) {
+    enableCallingScrapeData();
+  } else {
+    console.log('disable scrape XHR WS data');
+  }
 }
 
 Data.isCallingScrapeData = true;
@@ -341,8 +344,8 @@ var XhrScrapper = function () {
   function getTaskFromTasks(tsk) {
     return {
       title: tsk.TTITLE,
-      startDate: tsk.TASKS[2],//convertTimeToIso(tsk.TSTARTDATE), // timespan format
-      dueDate: tsk.TASKS[3],//convertTimeToIso(tsk.TENDDATE),  // timespan format
+      startDate: tsk.TASKS[2],
+      dueDate: tsk.TASKS[3],
       usersEmail: getUsersByNames(tsk.TOWNER), // csv names
       projectName: getProjectName()
     };
@@ -381,7 +384,7 @@ var XhrScrapper = function () {
 
 function getEmailFromClient(strUsername) {
   //get email from user
-  if (!strUsername)
+  if (!strUsername || strUsername === 'Unassigned')
     return '';
 
   var email = prompt(`Please enter email of ${strUsername}`);
@@ -390,7 +393,7 @@ function getEmailFromClient(strUsername) {
 
   // add email to storage
   Data.dicNamesMail[strUsername] = email;
-  chrome.storage.sync.set({ dicNamesMail: Data.dicNamesMail })
+  chrome.storage.sync.set({ dicNamesMail: Data.dicNamesMail });
 
   return email;
 }

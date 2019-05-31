@@ -1,7 +1,7 @@
 console.log('wwwwwhaaat??!?');
 locationHasChanged();
 
-var displayMessage = displayMessage || function(msg, type) {
+var displayMessage = displayMessage || function (msg, type) {
     let domMsg = document.createElement('div');
     let height = 30;
     let alertsCount = document.getElementsByClassName('sync-alert').length;
@@ -18,6 +18,7 @@ var displayMessage = displayMessage || function(msg, type) {
 
 document.body.addEventListener("load", locationHasChanged)// on load
 
+//window.addEventListener('hashchange', function () { setTimeout(locationHasChanged, 201); }); //url hash has changed
 window.addEventListener('hashchange', locationHasChanged); //url hash has changed
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
@@ -41,35 +42,42 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 }); //onMessage from background
 
 function locationHasChanged() {
-    window.ExCal = {};
 
     // I'm not sure im at task page yet
     onNotTaskPage();
+    if (window.ExCal)
+        clearIntervals();
+
+    window.ExCal = { calendarActTries: 0, taskActTries: 0 };
 
     if (location.hash && (
         location.hash.indexOf('taskdetail/') > 0 ||
         location.hash.indexOf('todomilestones/') > 0 ||
         location.hash.indexOf('projectcalendar/') > 0 ||
         location.hash.indexOf('myworkcalendar') > 0 ||
-        location.hash.indexOf('myclassic') > 0
+        location.hash.indexOf('myclassic') > 0 ||
+        location.hash.indexOf('tasklistdetail') > 0
     )
     ) {
-
 
         Promise.race(
             [waitActivityReady(isInCalcPage, 'calendarAct'),
             waitActivityReady(isInTaskPage, 'taskAct')]
         ).then(isReady => {
+
             if (isReady === 'calendarAct')
                 onCalendarReady();
+
             else if (isReady === 'taskAct')
                 onTaskReady();
+
+            else if (isReady === 'race won')
+                console.log('race won, you have an hacker mister');
+
             else
                 onNotTaskPage();
         }); //task ready
 
-    } else {
-        // onNotTaskPage();
     }
 
 } //locationHasChanged
@@ -93,9 +101,14 @@ function onNotTaskPage() {
     chrome.runtime.sendMessage({ type: 'action-icon', isTaskDetail: false });
 }
 
+function clearIntervals(){
+    for (let iKey in window.ExCal) {
+        if (iKey.startsWith('isReady'))
+            clearInterval(window.ExCal[iKey]);
+    }
+}
+
 function waitActivityReady(func, strResOk) {
-    window.ExCal = window.ExCal || {};
-    window.ExCal[strResOk + 'tries'] = window.ExCal[strResOk + 'tries'] || 0;
 
     let intervalKey = 'isReady' + strResOk;
 
@@ -106,24 +119,28 @@ function waitActivityReady(func, strResOk) {
 
             if (window.ExCal.isRaceWon === true) {
                 // already found what I was looking for at another function
-                clearInterval(window.ExCal[intervalKey]);
-                return resolve(false);
+
+                // clear intervals
+                clearIntervals();
+
+                return resolve('race won');
             }
 
             if (func()) {
                 // inside activity details
-                window.ExCal.isRaceWon = true;
                 clearInterval(window.ExCal[intervalKey]);
-                return resolve(strResOk);
+                resolve(strResOk);
+                window.ExCal.isRaceWon = true;
+                return;
             }
 
-            if (window.ExCal[strResOk + 'tries']++ > 10) {
+            if (window.ExCal[strResOk + 'Tries']++ > 10) {
                 // not task detail - return false
                 clearInterval(window.ExCal[intervalKey]);
                 return resolve(false);
             }
 
-            console.log(`waiting for task to be ready ${window.ExCal[strResOk + 'tries']} times`);
+            console.log(`waiting for task to be ready ${window.ExCal[strResOk + 'Tries']} times`);
 
         }, 200); // setInterval
 
@@ -134,7 +151,9 @@ function isInCalcPage() {
     //return Scraper.isElementIdExist('newmeeting') && Scraper.isElementIdExist('logtimecalidfrom');
     return location.hash.indexOf('projectcalendar/') > 0 ||
         location.hash.indexOf('myworkcalendar') > 0 ||
-        location.hash.indexOf('myclassic') > 0
+        location.hash.indexOf('myclassic') > 0 ||
+        location.hash.indexOf('todomilestones') > 0 ||
+        location.hash.indexOf('tasklistdetail') > 0
 }
 function isInTaskPage() {
     return Scraper.isLabelFieldExist('Owner') && Scraper.isElementIdExist('username');

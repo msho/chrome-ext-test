@@ -8,7 +8,7 @@ function xhrWithAuth(method, url, body, callback) {
     function getToken() {
         chrome.identity.getAuthToken({ interactive: true }, function (token) {
             if (chrome.runtime.lastError) {
-                callback(chrome.runtime.lastError);
+                callback('error', chrome.runtime.lastError);
                 return;
             }
 
@@ -37,7 +37,7 @@ function xhrWithAuth(method, url, body, callback) {
             chrome.identity.removeCachedAuthToken({ token: access_token },
                 getToken);
         } else {
-            callback(this.status, this.response);
+            callback(this.status, this.response, method);
         }
     }
 } //xhrWithAuth
@@ -77,7 +77,7 @@ let Gcalendar = {
     Setters: {
         updateEvent: function (gEvent, data, userEmail) {
             console.log('updating G event...');
-            
+
             let newData = JSON.parse(JSON.stringify(data));
             newData.userEmail = userEmail;
 
@@ -125,8 +125,14 @@ let Gcalendar = {
             return objResp.items[objResp.items.length - 1];
         }, // Responses.event
 
-        default: function (status, response) {
-            handleResponseStatus(status, '', response);
+        default: function (status, response, method) {
+            var type = '';
+            if (method === 'put') 
+                type = 'updated'
+            else if (method === 'post')
+                type = 'created';
+            
+            handleResponseStatus(status, type, response);
             return; //undefiend;
         } // Responses.default
 
@@ -148,7 +154,7 @@ let Gcalendar = {
                 },
                 "summary": eventTitle,
                 "description": eventDesc,
-                "attendees": domData.usersEmail.map((e)=> {return {"email": e};})
+                "attendees": domData.usersEmail.map((e) => { return { "email": e }; })
             };
             return JSON.stringify(gEevent);
         }, //Helper.convertDomDataToGevent
@@ -194,7 +200,7 @@ let Gcalendar = {
 } // Gcalendar
 
 function handleResponseStatus(status, type, resp) {
-    
+
     if (status !== 200) {
         console.error(`error: ${status} \n ${resp}`);
 
@@ -215,6 +221,6 @@ function handleResponseStatus(status, type, resp) {
 
     sendMessageToDom({
         event: 'alert',
-        text: `Google Calendar updated successfully`
+        text: `Google Calendar ${type} an event successfully`
     });
 } // handleResponseStatus

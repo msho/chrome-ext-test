@@ -102,7 +102,7 @@ class Scraper {
                     continue;
                 }
             }
-        
+
             arrEmails.push(dicUsers[strUsername] || '');
         }
         return arrEmails;

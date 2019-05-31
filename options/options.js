@@ -8,7 +8,7 @@ function save_options() {
     setTimeout(function () {
         status.textContent = '';
     }, 1250);
-    
+
 } //save options
 
 // Restores select box and checkbox state using the preferences
@@ -17,7 +17,7 @@ async function restore_options() {
     // Use default value color = 'red' and likesColor = true.
     let portalUrl = await ExStorage.get('portal-url');
     document.getElementById('portal-url').value = portalUrl;
-    
+
 }
 document.addEventListener('DOMContentLoaded', restore_options);
 document.getElementById('save').addEventListener('click', save_options);
