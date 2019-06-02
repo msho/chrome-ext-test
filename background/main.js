@@ -23,7 +23,6 @@ chrome.pageAction.onClicked.addListener(async function (sender) {
     return;
   }
 
-  console.log(sender.tab);
   sendMessageToDom({ event: 'alert', text: 'I\'m enabled and ready to sync m\'lord' }, undefined, sender.tabId);
 });
 
