@@ -63,7 +63,12 @@
   function enableCallingScrapeData(showLogs) {
     if (showLogs)
       console.log('enable scrape XHR WS data');
-
+	  
+	// remove old XHR requests
+	  var responseContainingEle = document.getElementById('__interceptedData');
+	if (responseContainingEle)
+		document.body.removeChild(responseContainingEle);
+	
     Data.isCallingScrapeData = true;
     requestIdleCallback(scrapeData);
   }
@@ -79,18 +84,19 @@
     if (Data.isFirstTimeDisabled && !isDisabled && !Data.isRefreshMessageShown) {
       // it is enabled! tell user to refresh if he want it to sync calendar again
       /*displayMessage('For syncing newly created Zoho-tasks from this page to Google Cleandar<br /> one must refresh the page', 'warning', 10000);*/
-      alert('For syncing newly created Zoho-tasks from this page to Google Cleandar<br /> one must refresh the page');
+      alert('For syncing newly created Zoho-tasks from this page to Google Cleandar\n one must refresh the page');
       Data.isRefreshMessageShown = true;
     }
 
     // if ex was disabled and now enabled -> enable call scrapeData again
-    if (Data.isCallingScrapeData === false && !isDisabled) {
+    if (Data.isCallingScrapeData === false && !isDisabled) {	
       enableCallingScrapeData(true);
     }
 
     Data.disableFromMenu = isDisabled;
-  }
+  } // onDisabledFromMenuChanged
 
+/*
   var displayMessage = displayMessage || function (msg, type, msStay) {
     let domMsg = document.createElement('div');
     let height = 30;
@@ -105,7 +111,8 @@
     document.body.appendChild(domMsg);
     setTimeout(() => document.body.removeChild(domMsg), msStay || 5000);
   }
-
+*/
+	
   async function interceptData() {
     let isDisabled = await isExDisabled();
     if (isDisabled) {
@@ -206,15 +213,20 @@
   } // scrapeData
 
   function finishScrape(responseContainingEle) {
-    if (responseContainingEle)
-      document.body.removeChild(responseContainingEle);
 
-    if (!Data.disableFromMenu && isUrlForWsScraping()) {
+    if (!Data.disableFromMenu && isUrlForWsScraping()) { 
+		// if URL ok and enbaled, continue to listen to scrapping data
       enableCallingScrapeData();
-    } else {
+    
+	} else {
+		// if URL not ok or extension disabled, stop to listen to scrapping data (and remove the last XHR request data)
+		if (responseContainingEle) {
+			document.body.removeChild(responseContainingEle);
+		}
+		
       console.log('disable scrape XHR WS data');
     }
-  }
+  } // finishScrape
 
   Data.isCallingScrapeData = true;
   requestIdleCallback(scrapeData);
