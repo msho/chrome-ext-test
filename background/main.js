@@ -15,22 +15,22 @@ chrome.runtime.onInstalled.addListener(function () {
   });
 
   ExStorage.set('portal-url', 'portal/grseeconsulting');
-	
-	// urls that can add new task and need to listen to the xhr requests at them
-	ExStorage.set('listen-urls', [
-		'tasklistdetail',
-		'myclassic',
-		'myworkcalendar',
-		'projectcalendar',
-		'todomilestones'
-	]);
-	
-	// url that can edit task
-	ExStorage.set('task-page', 'taskdetail/');
-	
-	// when click on extension icon and ext tells its ready..
-	ExStorage.set('ready-messages', ['I\'m enabled and ready to sync m\'lord']);
-	
+
+  // urls that can add new task and need to listen to the xhr requests at them
+  ExStorage.set('listen-urls', [
+    'tasklistdetail',
+    'myclassic',
+    'myworkcalendar',
+    'projectcalendar',
+    'todomilestones'
+  ]);
+
+  // url that can edit task
+  ExStorage.set('task-page', 'taskdetail/');
+
+  // when click on extension icon and ext tells its ready..
+  ExStorage.set('ready-messages', ['I\'m enabled and ready to sync m\'lord']);
+
 }); //onInstalled
 
 chrome.pageAction.onClicked.addListener(async function (sender) {
@@ -39,7 +39,9 @@ chrome.pageAction.onClicked.addListener(async function (sender) {
     return;
   }
 
-  sendMessageToDom({ event: 'alert', text: 'I\'m enabled and ready to sync m\'lord' }, undefined, sender.tabId);
+  let arrMessages = await ExStorage.get('ready-messages');
+  let strMessage = arrMessages[Math.floor(Math.random()*arrMessages.length)];
+  sendMessageToDom({ event: 'alert', text: strMessage }, undefined, sender.tabId);
 });
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
@@ -194,7 +196,7 @@ async function callGcalendarApi(domData) {
    */
   changedDomData = domData;
 
-  if (!changedDomData.url || !changedDomData.startDate || changedDomData.startDate.length<2 || !changedDomData.dueDate) {
+  if (!changedDomData.url || !changedDomData.startDate || changedDomData.startDate.length < 2 || !changedDomData.dueDate) {
     console.log('not enough data for google calledar');
     return;
   }

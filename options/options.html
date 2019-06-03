@@ -2,29 +2,31 @@
 <html>
 
 <head>
-    <title>Zoho Google Calendar Sync Options</title>
-	
+	<title>Zoho Google Calendar Sync Options</title>
+
 	<style>
 		#easter-egg {
-			height: 50px; width:100%;
+			height: 50px;
+			width: 100%;
 			background-color: #FFFFFB;
 		}
+
 		textarea {
 			width: 99%;
 			height: 150px;
 		}
-		
+
 		div#more-options {
-		display:none;
+			display: none;
 		}
-		
-		.options > div:not(:first-child),
-		div#more-options.options > div:first-child {
+
+		.options>div:not(:first-child),
+		div#more-options.options>div:first-child {
 			border-top: 1px dashed lightgray;
 			margin-top: 30px;
 		}
-		
-		.options > div > p {
+
+		.options>div>p {
 			font-weight: bold;
 		}
 	</style>
@@ -39,32 +41,32 @@
 			<input id="portal-url" name="portal-url">
 		</div>
 	</div>
-	
+
 	<!-- secret div that opens a secret options -->
 	<div id="easter-egg"></div>
-	
+
 	<div id="more-options" class="options">
 		<div>
 			<p>Pages that can add task:</p>
 			<textarea id="xhr-urls"></textarea>
 		</div>
-		
+
 		<div>
 			<p>Edit task page:</p>
 			<input id="edit-task-url">
 		</div>
-		
+
 		<div>
 			<p>Ready text:</p>
 			<textarea id="ready-text"></textarea>
 		</div>
 	</div> <!-- /more options -->
 
-    <div id="status"></div>
-    <button id="save">Save</button>
+	<div id="status"></div>
+	<button id="save">Save</button>
 
-    <script src="../background/storage.js"></script>
-    <script src="options.js"></script>
+	<script src="../background/storage.js"></script>
+	<script src="options.js"></script>
 </body>
 
 </html>

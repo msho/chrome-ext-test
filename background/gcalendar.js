@@ -127,11 +127,11 @@ let Gcalendar = {
 
         default: function (status, response, method) {
             var type = '';
-            if (method === 'put') 
+            if (method === 'put')
                 type = 'updated'
             else if (method === 'post')
                 type = 'created';
-            
+
             handleResponseStatus(status, type, response);
             return; //undefiend;
         } // Responses.default

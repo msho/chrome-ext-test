@@ -1,4 +1,3 @@
-console.log('wwwwwhaaat??!?');
 locationHasChanged();
 
 var displayMessage = displayMessage || function (msg, type) {
@@ -41,7 +40,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 }); //onMessage from background
 
-function locationHasChanged() {
+async function locationHasChanged() {
 
     // I'm not sure im at task page yet
     onNotTaskPage();
@@ -50,13 +49,12 @@ function locationHasChanged() {
 
     window.ExCal = { calendarActTries: 0, taskActTries: 0 };
 
+    let arrHashListenUrls = await ExStorage.get('listen-urls');
+    let strHashTask = await ExStorage.get('task-page');
+
     if (location.hash && (
-        location.hash.indexOf('taskdetail/') > 0 ||
-        location.hash.indexOf('todomilestones/') > 0 ||
-        location.hash.indexOf('projectcalendar/') > 0 ||
-        location.hash.indexOf('myworkcalendar') > 0 ||
-        location.hash.indexOf('myclassic') > 0 ||
-        location.hash.indexOf('tasklistdetail') > 0
+        location.hash.indexOf(strHashTask) > 0 ||
+        arrHashListenUrls.some(it => { return location.hash.indexOf(it) > 0 })
     )
     ) {
 
@@ -101,7 +99,7 @@ function onNotTaskPage() {
     chrome.runtime.sendMessage({ type: 'action-icon', isTaskDetail: false });
 }
 
-function clearIntervals(){
+function clearIntervals() {
     for (let iKey in window.ExCal) {
         if (iKey.startsWith('isReady'))
             clearInterval(window.ExCal[iKey]);
@@ -126,35 +124,38 @@ function waitActivityReady(func, strResOk) {
                 return resolve('race won');
             }
 
-            if (func()) {
-                // inside activity details
-                clearInterval(window.ExCal[intervalKey]);
-                resolve(strResOk);
-                window.ExCal.isRaceWon = true;
-                return;
-            }
+            func().then(function (isReady) {
+                if (isReady) {
+                    // inside activity details
+                    clearInterval(window.ExCal[intervalKey]);
+                    resolve(strResOk);
+                    window.ExCal.isRaceWon = true;
+                    return;
 
-            if (window.ExCal[strResOk + 'Tries']++ > 10) {
-                // not task detail - return false
-                clearInterval(window.ExCal[intervalKey]);
-                return resolve(false);
-            }
+                }
 
-            console.log(`waiting for task to be ready ${window.ExCal[strResOk + 'Tries']} times`);
+                if (window.ExCal[strResOk + 'Tries']++ > 10) {
+                    // not task detail - return false
+                    clearInterval(window.ExCal[intervalKey]);
+                    return resolve(false);
+                }
+
+                console.log(`waiting for task to be ready ${window.ExCal[strResOk + 'Tries']} times`);
+            });
 
         }, 200); // setInterval
 
     }); //Promise
 } // waitActivityReady
 
-function isInCalcPage() {
+async function isInCalcPage() {
     //return Scraper.isElementIdExist('newmeeting') && Scraper.isElementIdExist('logtimecalidfrom');
-    return location.hash.indexOf('projectcalendar/') > 0 ||
-        location.hash.indexOf('myworkcalendar') > 0 ||
-        location.hash.indexOf('myclassic') > 0 ||
-        location.hash.indexOf('todomilestones') > 0 ||
-        location.hash.indexOf('tasklistdetail') > 0
+    let arrHashListenUrls = await ExStorage.get('listen-urls');
+
+    return location.hash &&
+        arrHashListenUrls.some(it => { return location.hash.indexOf(it) > 0 });
+
 }
-function isInTaskPage() {
+async function isInTaskPage() {
     return Scraper.isLabelFieldExist('Owner') && Scraper.isElementIdExist('username');
 }

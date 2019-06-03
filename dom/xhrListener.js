@@ -1,13 +1,13 @@
-(async function() {
+(async function () {
 
-	function getFromStorage(key){
-		return new Promise(r => {
-	      chrome.storage.sync.get(key, (item) => r(item[key]));
-    	});
-	}
-	
+  function getFromStorage(key) {
+    return new Promise(r => {
+      chrome.storage.sync.get(key, (item) => r(item[key]));
+    });
+  }
+
   function getPortalUrl() {
-	  return getFromStorage('portalUrl');
+    return getFromStorage('portalUrl');
     /*return new Promise(r => {
       chrome.storage.sync.get('portalUrl', (portalUrl) => r(portalUrl['portalUrl']));
     });*/
@@ -18,25 +18,17 @@
   /*chrome.storage.sync.get('portalUrl', (portalUrl) =>
     Data.portalUrl = portalUrl['portalUrl']);*/
 
-	Data.dicNamesMail = await getFromStorage('dicNamesMail');
-	Data.dicNamesMail = Data.dicNamesMail || {};
+  Data.dicNamesMail = await getFromStorage('dicNamesMail');
+  Data.dicNamesMail = Data.dicNamesMail || {};
+  Data.urlsForScraping = await getFromStorage('listen-urls');
+  Data.taskUrlHash = await getFromStorage('task-page');
   /*chrome.storage.sync.get('dicNamesMail', (dicNamesMail) =>
     Data.dicNamesMail = dicNamesMail['dicNamesMail'] || {});*/
 
   async function isUrlForWsScraping() {
-	  let urlsForWs = await getFromStorage('listen-urls');
-	  
-	  for (let urlHash of urlsForWs) {
-	  	if (location.hash.indexOf(urlHash) > 0)
-			return true;
-	  }
-	  return false;
-	  
-    /*return location.hash.indexOf('todomilestones/') > 0 ||
-      location.hash.indexOf('projectcalendar/') > 0 ||
-      location.hash.indexOf('myworkcalendar') > 0 ||
-      location.hash.indexOf('myclassic') > 0 ||
-      location.hash.indexOf('tasklistdetail/') > 0*/
+
+    return location.hash &&
+      Data.urlsForScraping.some(it => { return location.hash.indexOf(it) > 0 });
   }
 
   // Determine wether to listen to ws or not
@@ -80,12 +72,12 @@
   function enableCallingScrapeData(showLogs) {
     if (showLogs)
       console.log('enable scrape XHR WS data');
-	  
-	// remove old XHR requests
-	  var responseContainingEle = document.getElementById('__interceptedData');
-	if (responseContainingEle)
-		document.body.removeChild(responseContainingEle);
-	
+
+    // remove old XHR requests
+    var responseContainingEle = document.getElementById('__interceptedData');
+    if (responseContainingEle)
+      document.body.removeChild(responseContainingEle);
+
     Data.isCallingScrapeData = true;
     requestIdleCallback(scrapeData);
   }
@@ -100,36 +92,18 @@
     // if script is not injected due to disabled ex (and user enable it)
     if (Data.isFirstTimeDisabled && !isDisabled && !Data.isRefreshMessageShown) {
       // it is enabled! tell user to refresh if he want it to sync calendar again
-      /*displayMessage('For syncing newly created Zoho-tasks from this page to Google Cleandar<br /> one must refresh the page', 'warning', 10000);*/
       alert('For syncing newly created Zoho-tasks from this page to Google Cleandar\n one must refresh the page');
       Data.isRefreshMessageShown = true;
     }
 
     // if ex was disabled and now enabled -> enable call scrapeData again
-    if (Data.isCallingScrapeData === false && !isDisabled) {	
+    if (Data.isCallingScrapeData === false && !isDisabled) {
       enableCallingScrapeData(true);
     }
 
     Data.disableFromMenu = isDisabled;
   } // onDisabledFromMenuChanged
 
-/*
-  var displayMessage = displayMessage || function (msg, type, msStay) {
-    let domMsg = document.createElement('div');
-    let height = 30;
-    let alertsCount = document.getElementsByClassName('sync-alert').length;
-    let bgColor = (type === 'error') ? '#F08080' : '#90EE90'
-    height = 2 * height * alertsCount + height;
-
-    domMsg.setAttribute('class', 'sync-alert');
-    domMsg.style = `position:fixed;left: 130px; top: ${height}px;background-color: ${bgColor};padding: 10px; height: 30px;z-index:99999;`
-    domMsg.innerHTML = msg;
-
-    document.body.appendChild(domMsg);
-    setTimeout(() => document.body.removeChild(domMsg), msStay || 5000);
-  }
-*/
-	
   async function interceptData() {
     let isDisabled = await isExDisabled();
     if (isDisabled) {
@@ -214,14 +188,14 @@
       objRet.taskListName = resp.TLISTNAME;
 
     if (!objRet.url)
-      objRet.url = `https://projects.zoho.com/${Data.portalUrl}#taskdetail/${resp.PID}/${resp.NEXT}/${resp.ADDEDTODOTASK}`;
+      objRet.url = `https://projects.zoho.com/${Data.portalUrl}#${Data.taskUrlHash}${resp.PID}/${resp.NEXT}/${resp.ADDEDTODOTASK}`;
 
     // send message to BG! apply google calendar API!
     if (objRet.startDate && objRet.startDate.length > 1 && objRet.dueDate.trim('-') && objRet.usersEmail) {
       chrome.runtime.sendMessage({ type: 'changed-dom', data: objRet });
     }
 
-    //TODO: Tell bg to look if next page is valid? (and store task id if not in url). maybe chage url and add id if needed
+    //Tell bg to look if next page is valid? (and store task id if not in url). maybe chage url and add id if needed
     console.log(window.location.href);
     //pushState({},'',objRet.url);
 
@@ -231,16 +205,16 @@
 
   function finishScrape(responseContainingEle) {
 
-    if (!Data.disableFromMenu && isUrlForWsScraping()) { 
-		// if URL ok and enbaled, continue to listen to scrapping data
+    if (!Data.disableFromMenu && isUrlForWsScraping()) {
+      // if URL ok and enbaled, continue to listen to scrapping data
       enableCallingScrapeData();
-    
-	} else {
-		// if URL not ok or extension disabled, stop to listen to scrapping data (and remove the last XHR request data)
-		if (responseContainingEle) {
-			document.body.removeChild(responseContainingEle);
-		}
-		
+
+    } else {
+      // if URL not ok or extension disabled, stop to listen to scrapping data (and remove the last XHR request data)
+      if (responseContainingEle) {
+        document.body.removeChild(responseContainingEle);
+      }
+
       console.log('disable scrape XHR WS data');
     }
   } // finishScrape
@@ -403,7 +377,7 @@
         dueDate: tsk.COMPED,
         usersEmail: getUsersByIds(tsk.OWNER), // OWNER is array of ids
         projectName: tsk.PROJNAME,
-        url: `https://projects.zoho.com/${Data.portalUrl}#taskdetail/${tsk.PROJID}/${tsk.PARENTID}/${tsk.ID}`,
+        url: `https://projects.zoho.com/${Data.portalUrl}#${Data.taskUrlHash}${tsk.PROJID}/${tsk.PARENTID}/${tsk.ID}`,
         taskListName: getTaskListName()
       };
     }
@@ -431,5 +405,5 @@
 
     return email;
   }
-  
+
 })();
