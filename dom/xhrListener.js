@@ -1,9 +1,16 @@
 (async function() {
 
-  async function getPortalUrl() {
-    return new Promise(r => {
+	function getFromStorage(key){
+		return new Promise(r => {
+	      chrome.storage.sync.get(key, (item) => r(item[key]));
+    	});
+	}
+	
+  function getPortalUrl() {
+	  return getFromStorage('portalUrl');
+    /*return new Promise(r => {
       chrome.storage.sync.get('portalUrl', (portalUrl) => r(portalUrl['portalUrl']));
-    });
+    });*/
   }
   var Data = {};
 
@@ -11,15 +18,25 @@
   /*chrome.storage.sync.get('portalUrl', (portalUrl) =>
     Data.portalUrl = portalUrl['portalUrl']);*/
 
-  chrome.storage.sync.get('dicNamesMail', (dicNamesMail) =>
-    Data.dicNamesMail = dicNamesMail['dicNamesMail'] || {});
+	Data.dicNamesMail = await getFromStorage('dicNamesMail');
+	Data.dicNamesMail = Data.dicNamesMail || {};
+  /*chrome.storage.sync.get('dicNamesMail', (dicNamesMail) =>
+    Data.dicNamesMail = dicNamesMail['dicNamesMail'] || {});*/
 
-  function isUrlForWsScraping() {
-    return location.hash.indexOf('todomilestones/') > 0 ||
+  async function isUrlForWsScraping() {
+	  let urlsForWs = await getFromStorage('listen-urls');
+	  
+	  for (let urlHash of urlsForWs) {
+	  	if (location.hash.indexOf(urlHash) > 0)
+			return true;
+	  }
+	  return false;
+	  
+    /*return location.hash.indexOf('todomilestones/') > 0 ||
       location.hash.indexOf('projectcalendar/') > 0 ||
       location.hash.indexOf('myworkcalendar') > 0 ||
       location.hash.indexOf('myclassic') > 0 ||
-      location.hash.indexOf('tasklistdetail/') > 0
+      location.hash.indexOf('tasklistdetail/') > 0*/
   }
 
   // Determine wether to listen to ws or not

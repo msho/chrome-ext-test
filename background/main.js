@@ -15,6 +15,22 @@ chrome.runtime.onInstalled.addListener(function () {
   });
 
   ExStorage.set('portal-url', 'portal/grseeconsulting');
+	
+	// urls that can add new task and need to listen to the xhr requests at them
+	ExStorage.set('listen-urls', [
+		'tasklistdetail',
+		'myclassic',
+		'myworkcalendar',
+		'projectcalendar',
+		'todomilestones'
+	]);
+	
+	// url that can edit task
+	ExStorage.set('task-page', 'taskdetail/');
+	
+	// when click on extension icon and ext tells its ready..
+	ExStorage.set('ready-messages', ['I\'m enabled and ready to sync m\'lord']);
+	
 }); //onInstalled
 
 chrome.pageAction.onClicked.addListener(async function (sender) {
