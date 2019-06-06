@@ -40,7 +40,7 @@ chrome.pageAction.onClicked.addListener(async function (sender) {
   }
 
   let arrMessages = await ExStorage.get('ready-messages');
-  let strMessage = arrMessages[Math.floor(Math.random()*arrMessages.length)];
+  let strMessage = arrMessages[Math.floor(Math.random() * arrMessages.length)];
   sendMessageToDom({ event: 'alert', text: strMessage }, undefined, sender.tabId);
 });
 
@@ -55,12 +55,17 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     showHideActionIcon(request.isTaskDetail, sender.tab.id);
 
   } else if (request.type === 'init-dom') {
-    //get dom original data
+    // get dom original data
     initDomData = request.data;
 
   } else if (request.type === 'changed-dom') {
-    //get dom updated data
+    // get dom updated data
     callGcalendarApi(request.data)
+
+  } else if (request.type === 'remove-task') {
+    // user clicked on remove task
+    removeFromGcalendar(request.data.usersEmail, request.data);
+
   } else {
     // unkown request type
     console.log(`Wierd request ${request.type}`)
@@ -167,6 +172,16 @@ function sendMessageToDom(msg, cb, tabId) {
   }
 } // sendMessageToDom
 
+function findRemovedOwners(currentData, initData) {
+  if (!initData || !initData.usersEmail || !initData.usersEmail.length)
+    return null;
+
+  // return all emails that were at init-data but removed from current-data
+  return initData.usersEmail.filter(e =>
+    !currentData.usersEmail.includes(e)
+  );
+}
+
 function onWebRequestCompleted(details) {
 
   sendMessageToDom({ event: "task-updated" }, function (domData) {
@@ -180,16 +195,19 @@ function onWebRequestCompleted(details) {
       return;
     }
 
+    let usersToRemove = findRemovedOwners(domData, initDomData);
+    initDomData = domData;
+
     console.log('recieved data from dom');
     console.log(domData);
 
-    callGcalendarApi(domData)
+    callGcalendarApi(domData, usersToRemove)
 
 
   }); // sendMessageToDom
 } // onWebRequestCompleted
 
-async function callGcalendarApi(domData) {
+async function callGcalendarApi(domData, usersToRemove) {
   /**
    * Search for event in the Google Calendar,
    * * if found, edit it, otherwise, create new Google Caledar event
@@ -202,13 +220,9 @@ async function callGcalendarApi(domData) {
   }
 
   for (let userEmail of changedDomData.usersEmail) {
-    if (!userEmail) {
-      console.log('not enough data for google calledar');
-      continue;
-    }
-
-    //Gcalendar.Requests.Getters.calendarList
-    let gEvent = await Gcalendar.Requests.Getters.event(userEmail, changedDomData.url);
+    
+    // get Google-Calendar event
+    let gEvent = await getGoogleEvent(userEmail, changedDomData);
 
     // check if calendar event exist
     if (gEvent === null) {
@@ -222,5 +236,38 @@ async function callGcalendarApi(domData) {
       console.error('weired response from google api: ');
 
     } // if calendar event exist?
+  } // for each user owner
+
+  removeFromGcalendar(usersToRemove, changedDomData);
+
+} // callGcalendarApi
+
+async function removeFromGcalendar(usersToRemove, data) {
+  if (!usersToRemove || !usersToRemove.length)
+    return;
+
+  for (let emailToRemove of usersToRemove) {
+
+    // get G-calendar event 
+    let gEventToRemove = await getGoogleEvent(emailToRemove, data);
+
+    // found an event, remove it.
+    if (gEventToRemove) {
+      Gcalendar.Setters.removeEvent(emailToRemove, gEventToRemove);
+
+    } else {
+      console.log(`did not found this event ${data.url} at ${emailToRemove}. Cannot remove event`);
+    }
+
+  } //for each user owner to remove 
+}
+
+function getGoogleEvent(email, data) {
+  if (!email) {
+    console.log('not enough data for google calledar');
+    return '';
   }
+
+  //Gcalendar.Requests.Getters.calendarList
+  return Gcalendar.Requests.Getters.event(email, data.url);
 }

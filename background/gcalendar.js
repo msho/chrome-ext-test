@@ -100,6 +100,17 @@ let Gcalendar = {
                 Gcalendar.Helper.convertDomDataToGevent(newData),
                 Gcalendar.Responses.default);
         }, // Setters.create event
+
+        removeEvent: function (emailToRemove, gEvent) {
+            console.log('removing an event from ' + emailToRemove);
+
+            xhrWithAuth(
+                'delete',
+                `https://www.googleapis.com/calendar/v3/calendars/${emailToRemove}/events/${gEvent.id}`,
+                null, //no body
+                Gcalendar.Responses.default);
+        } // Setters.removeEvent
+
     }, //Gcalendar.Setters
 
     Responses: {
@@ -131,6 +142,8 @@ let Gcalendar = {
                 type = 'updated'
             else if (method === 'post')
                 type = 'created';
+            else if (method === 'delete')
+                type = 'removed';
 
             handleResponseStatus(status, type, response);
             return; //undefiend;
@@ -201,7 +214,7 @@ let Gcalendar = {
 
 function handleResponseStatus(status, type, resp) {
 
-    if (status !== 200) {
+    if (status < 200 || status > 300) {
         console.error(`error: ${status} \n ${resp}`);
 
         sendMessageToDom({
@@ -210,11 +223,11 @@ function handleResponseStatus(status, type, resp) {
         });
         return;
     }
-
-    let objResp = JSON.parse(resp);
-    console.log('response from google calendar api: ');
-    console.log(objResp);
-
+    if (resp) {
+        let objResp = JSON.parse(resp);
+        console.log('response from google calendar api: ');
+        console.log(objResp);
+    }
     // Do not update dom if get-event feched successfully
     if (type === 'get-event')
         return;

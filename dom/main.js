@@ -92,6 +92,39 @@ function onTaskReady() {
     let domInit = Scraper.getDomData();
     console.log(domInit);
     chrome.runtime.sendMessage({ type: 'init-dom', data: domInit });
+
+    //if delete is pressed, send delete to server
+    let domDelete = document.querySelector('div.posrel[onclick*=del]');
+    if (!domDelete)
+        return;
+
+    domDelete.removeEventListener('mouseup', onPressDelete);
+    domDelete.addEventListener('mouseup', onPressDelete);
+}
+
+function onPressDelete() {
+    // shows popup for user. set timeout wait that the popup is created
+    setTimeout(() => {
+        let okButton = document.getElementById('button1');
+        if (okButton) {
+            okButton.removeEventListener('mouseup', onPressOkDelete);
+            okButton.addEventListener('mouseup', onPressOkDelete);
+        }
+    }, 100);
+
+} // onPressDelete
+
+function onPressOkDelete() {
+    // send message to bg to remove task from G-calendar
+    console.log('delete task from G-Calendar');
+
+    chrome.runtime.sendMessage({
+        type: 'remove-task',
+        data: {
+            usersEmail: Scraper.getUsersEmail(),
+            url: location.href
+        }
+    }); // send message to bg
 }
 
 function onNotTaskPage() {
