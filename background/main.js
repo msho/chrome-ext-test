@@ -29,7 +29,11 @@ chrome.runtime.onInstalled.addListener(function () {
   ExStorage.set('task-page', 'taskdetail/');
 
   // when click on extension icon and ext tells its ready..
-  ExStorage.set('ready-messages', ['I\'m enabled and ready to sync m\'lord']);
+  ExStorage.set('ready-messages', [
+	  'I\'m enabled and ready to sync m\'lord', 
+	  'You clicked me.',
+	  'I will click you back!'
+  ]);
 
 }); //onInstalled
 

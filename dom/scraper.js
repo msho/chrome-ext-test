@@ -33,6 +33,12 @@ class Scraper {
     /* *** */
 
     static getProjectName() {
+		// try get selected project
+		let domProjName = document.getElementsByClassName('topband_projsel');
+		if (domProjName.length && domProjName[0].innerText)
+			return domProjName[0].innerText;
+		
+		// couldn't, try get it from more menu tabs..
         let domProjNameSibling = document.getElementById('menumoretabs');
         if (!domProjNameSibling)
             return '';
