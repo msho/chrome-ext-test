@@ -30,9 +30,9 @@ chrome.runtime.onInstalled.addListener(function () {
 
   // when click on extension icon and ext tells its ready..
   ExStorage.set('ready-messages', [
-	  'I\'m enabled and ready to sync m\'lord', 
-	  'You clicked me.',
-	  'I will click you back!'
+    'I\'m enabled and ready to sync m\'lord',
+    'You clicked me.',
+    'I will click you back!'
   ]);
 
 }); //onInstalled
@@ -224,7 +224,7 @@ async function callGcalendarApi(domData, usersToRemove) {
   }
 
   for (let userEmail of changedDomData.usersEmail) {
-    
+
     // get Google-Calendar event
     let gEvent = await getGoogleEvent(userEmail, changedDomData);
 

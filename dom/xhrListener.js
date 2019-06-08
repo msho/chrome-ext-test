@@ -287,17 +287,6 @@
     }
 
     function getProjectName() {
-		//try get project name from selected
-		let domProjName = document.getElementsByClassName('topband_projsel');
-		if (domProjName.length && domProjName[0].innerText)
-			return domProjName[0].innerText;
-		
-		//faild, try to get if from tp name
-		domProjName = document.getElementById('tpname_list');
-		if (domProjName && domProjName.innerText)
-			return domProjName.innerText;
-		
-		// faild, try to get it from more menu tab
       let domProjNameSibling = document.getElementById('menumoretabs');
       if (!domProjNameSibling)
         return '';
