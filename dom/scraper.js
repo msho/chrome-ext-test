@@ -30,12 +30,85 @@ class Scraper {
         return document.getElementById(strId) !== null;
     }
 
+    static getProjectId() {
+        let urlHash = window.location.href;
+        if (!urlHash)
+            return null;
+
+        let arrHash = location.hash.split('/');
+        if (arrHash.length < 2)
+            return null;
+
+        return arrHash[1];
+    }
+
+    static getProjNameFromId() {
+        if (typeof glProjList === 'undefined' || !glProjList.length)
+            return null; // could not find proj-list
+
+        let projId = Scraper.getProjectId();
+        if (!projId)
+            return null; // could not find proj id
+
+        for (let arrProj of glProjList) {
+            if (arrProj[0] === projId)
+                return arrProj[1]; // found proj id, return its name
+        }
+
+        // could not find proj in glProjList
+        return null;
+    }
+
+    static getTaskListFromDisplay() {
+        let domTaskList = document.getElementById('ltndisp');
+        if (!domTaskList)
+            return null;
+
+        let strTaskListName = domTaskList.innerHTML;
+        if (!strTaskListName)
+            return null;
+
+        // strTaskListName could look like 'projName&nbsp;(external)
+        let infoIndex = strTaskListName.lastIndexOf('&nbsp;');
+        if (infoIndex === -1)
+            return strTaskListName;
+
+        return strTaskListName.substring(0, infoIndex);
+    }
+
+    static getTaskListFromListActive() {
+        let arrDomtaskList = document.getElementsByClassName('list-name active');
+        if (!arrDomtaskList || !arrDomtaskList.length)
+            return null;
+
+        return arrDomtaskList[0].innerText;
+    }
+
+    static getTaskListFromTaskInfo() {
+        let arrDomTaskInfo = document.querySelectorAll('#tsk_info > div > div');
+        if (arrDomTaskInfo.length < 3)
+            return null;
+
+        return arrDomTaskInfo[2].lastElementChild.innerText;
+    }
+
     /* *** */
 
     static getProjectName() {
-        // try get selected project
-        let domProjName = document.getElementsByClassName('topband_projsel');
-        if (domProjName.length && domProjName[0].innerText)
+
+        // try get projName from task info
+        let domProjName = document.querySelector('#tsk_info a');
+        if (domProjName && domProjName.innerText)
+            return domProjName.innerText;
+
+        // nope, try to get project name from id
+        let strProjName = Scraper.getProjNameFromId();
+        if (strProjName)
+            return strProjName;
+
+        // failed, try get selected project
+        domProjName = document.getElementsByClassName('topband_projsel');
+        if (domProjName.length && domProjName[0].innerText && domProjName[0].innerText.trim() !== 'Home')
             return domProjName[0].innerText;
 
         // couldn't, try get it from more menu tabs..
@@ -47,20 +120,10 @@ class Scraper {
     }
 
     static getTaskListName() {
-        let domProjList = document.getElementById('ltndisp');
-        if (!domProjList)
-            return '';
-
-        let strProjFullName = domProjList.innerHTML;
-        if (!strProjFullName)
-            return '';
-
-        // strPojFullName could look like 'projName&nbsp;(external)
-        let infoIndex = strProjFullName.lastIndexOf('&nbsp;');
-        if (infoIndex === -1)
-            return strProjFullName;
-
-        return strProjFullName.substring(0, infoIndex);
+        return Scraper.getTaskListFromDisplay() ||
+            Scraper.getTaskListFromListActive() ||
+            Scraper.getTaskListFromTaskInfo() ||
+            '';
 
     }
     static getUsersEmail() {

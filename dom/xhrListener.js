@@ -174,10 +174,10 @@
     var objRet;
 
     if (resp.TASKS && resp.TASKS[0] && resp.TASKS[0].TASKS)
-      objRet = XhrScrapper.getTaskFromTasks(resp.TASKS[0]);
+      objRet = XhrScrapper.getTaskFromTasks(resp.TASKS[0], resp.PID);
 
     else if (resp.GANTTTASK)
-      objRet = XhrScrapper.getTaskFromGan(resp.GANTTTASK);
+      objRet = XhrScrapper.getTaskFromGan(resp.GANTTTASK, resp.PID);
     else if (resp.ID)
       objRet = XhrScrapper.getTaskFromSimple(resp);
 
@@ -286,7 +286,32 @@
       return emails;
     }
 
-    function getProjectName() {
+    function getProjNameFromId(projId) {
+      if (typeof glProjList === 'undefined' || !glProjList.length)
+        return null; // could not find proj-list
+
+      for (let arrProj of glProjList) {
+        if (arrProj[0] === projId)
+          return arrProj[1]; // found proj id, return its name
+      }
+
+      // could not find proj in glProjList
+      return null;
+    }
+
+    function getProjectName(projId) {
+
+      // try to get project name from id
+      let strProjName = getProjNameFromId(projId);
+      if (strProjName)
+        return strProjName;
+
+      // failed, try get selected project
+      let domProjName = document.getElementsByClassName('topband_projsel');
+      if (domProjName.length && domProjName[0].innerText && domProjName[0].innerText.trim() !== 'Home')
+        return domProjName[0].innerText;
+
+      // couldn't, try get it from more menu tabs..
       let domProjNameSibling = document.getElementById('menumoretabs');
       if (!domProjNameSibling)
         return '';
@@ -349,23 +374,23 @@
       return taskListName;
     }
 
-    function getTaskFromTasks(tsk) {
+    function getTaskFromTasks(tsk, projId) {
       return {
         title: tsk.TTITLE,
         startDate: tsk.TASKS[2],
         dueDate: tsk.TASKS[3],
         usersEmail: getUsersByNames(tsk.TOWNER), // csv names
-        projectName: getProjectName()
+        projectName: getProjectName(projId)
       };
     }
 
-    function getTaskFromGan(tsk) {
+    function getTaskFromGan(tsk, projId) {
       return {
         title: tsk.name,
         startDate: convertTimeStringToIso(tsk.STARTDATE), // year,month,day,hour,minutes
         dueDate: convertTimeStringToIso(tsk.ENDDATE),  // year,month,day,hour,minutes
         usersEmail: getUsersByNames(tsk.OWNERS), // csv names
-        projectName: getProjectName()
+        projectName: getProjectName(projId)
       };
     }
 

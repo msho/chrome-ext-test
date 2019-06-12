@@ -83,6 +83,8 @@ async function locationHasChanged() {
 function onCalendarReady() {
     console.log(`is calendar ready: true`);
     chrome.runtime.sendMessage({ type: 'action-icon', isTaskDetail: true });
+
+    handleRemoveFromCalendar();
 }
 
 function onTaskReady() {
@@ -101,6 +103,70 @@ function onTaskReady() {
     domDelete.removeEventListener('mouseup', onPressDelete);
     domDelete.addEventListener('mouseup', onPressDelete);
 }
+
+function handleRemoveFromCalendar() {
+    /***
+     * @desc get all events when removing task from calendar and 
+     * * inject new remove function
+     */
+
+    let arrDomTrash = document.querySelectorAll('span[title="Delete task"]');
+    for (let domTrash of arrDomTrash) {
+        //for each trash icon
+
+        //get onclick attr
+        let strOnclick = domTrash.getAttribute('onclick');
+        if (!strOnclick) continue;
+
+        // add function that call bg that an event was deleted
+        let delFunc = addDelFunction(strOnclick);
+
+        if (delFunc)
+            domTrash.addEventListener('click', delFunc);
+    }
+} //handleRemoveFromCalendar
+
+function addDelFunction(strOnclick) {
+    /***
+     * @desc Add 'removeAllFromCaldendar' function to the onclick string 
+     * * the 'removeAllFromCaldendar' call bg to remove event from Google-Calendar
+     */
+    // check if str has delete-events function
+    if (strOnclick.indexOf('deleteEvent') === -1)
+        return null;
+
+    // get event id from onclick string
+    let arrOnclick = strOnclick.split(',');
+    if (arrOnclick.length != 4)
+        return null;
+
+    
+    window.projId = arrOnclick[1];
+    window.taskId = arrOnclick[2];
+    if (!taskId || !projId)
+        return null;
+    
+    // trim the char ' (ampercent)
+    projId = projId.replace(/(^')|('$)/g, "");
+    taskId = taskId.replace(/(^')|('$)/g, "");
+
+    // TODO: do not return a function, need to add handler to the ok to delete button that comes after it (store those projId, taskId in global scope)
+    // returning a del-function that calls bg
+    return async function () {
+        let taskUrlHash = await ExStorage.get('task-page');
+        let portalUrl = await ExStorage.get('portal-url');
+        console.log('delete task from G-Calendar');
+        console.log(`https://projects.zoho.com/${portalUrl}#${taskUrlHash}${projId}//${taskId}`);
+
+        chrome.runtime.sendMessage({
+            type: 'remove-all-tasks',
+            data: {
+                url: `https://projects.zoho.com/${portalUrl}#${taskUrlHash}${projId}//${taskId}`
+            }
+        }); // send message to bg
+    }
+}
+
 
 function onPressDelete() {
     // shows popup for user. set timeout wait that the popup is created
