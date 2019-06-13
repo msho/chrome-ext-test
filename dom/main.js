@@ -84,7 +84,7 @@ function onCalendarReady() {
     console.log(`is calendar ready: true`);
     chrome.runtime.sendMessage({ type: 'action-icon', isTaskDetail: true });
 
-    handleRemoveFromCalendar();
+    //handleRemoveFromCalendar();
 }
 
 function onTaskReady() {
@@ -100,15 +100,14 @@ function onTaskReady() {
     if (!domDelete)
         return;
 
+	/*
     domDelete.removeEventListener('mouseup', onPressDelete);
     domDelete.addEventListener('mouseup', onPressDelete);
+	*/
 }
-
+/*
 function handleRemoveFromCalendar() {
-    /***
-     * @desc get all events when removing task from calendar and 
-     * * inject new remove function
-     */
+    
 
     let arrDomTrash = document.querySelectorAll('span[title="Delete task"]');
     for (let domTrash of arrDomTrash) {
@@ -127,10 +126,7 @@ function handleRemoveFromCalendar() {
 } //handleRemoveFromCalendar
 
 function addDelFunction(strOnclick) {
-    /***
-     * @desc Add 'removeAllFromCaldendar' function to the onclick string 
-     * * the 'removeAllFromCaldendar' call bg to remove event from Google-Calendar
-     */
+    
     // check if str has delete-events function
     if (strOnclick.indexOf('deleteEvent') === -1)
         return null;
@@ -192,6 +188,7 @@ function onPressOkDelete() {
         }
     }); // send message to bg
 }
+*/
 
 function onNotTaskPage() {
     console.log(`is task-detail ready: false`);

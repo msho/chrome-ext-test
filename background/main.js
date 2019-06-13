@@ -1,3 +1,9 @@
+/* TODO: 
+* * set error and ok message after deleting
+* * Check all cases of adding and deleting with proj name
+* * Pulish & send it
+*/
+
 let initDomData, changedDomData;
 
 chrome.runtime.onInstalled.addListener(function () {
@@ -5,6 +11,9 @@ chrome.runtime.onInstalled.addListener(function () {
   // extension is enabled by default
   ExStorage.setDisabled(false);
   ExStorage.setHidden(false);
+
+  // create tasks object if not exist
+  ExStorage.createTasksObj();
 
   // create a context button where you can disable google sync
   chrome.contextMenus.create({
@@ -31,7 +40,7 @@ chrome.runtime.onInstalled.addListener(function () {
   // when click on extension icon and ext tells its ready..
   ExStorage.set('ready-messages', [
     'I\'m enabled and ready to sync m\'lord',
-    'You clicked me.',
+    'The icon have been clicked by you.',
     'I will click you back!'
   ]);
 
@@ -89,7 +98,13 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
 chrome.webRequest.onCompleted.addListener(onWebRequestCompleted, {
   urls: [`https://projects.zoho.com/*/updateaction.do`],
   types: ["xmlhttprequest"],
-}); //webRequest done
+}); //webRequest done (update)
+
+chrome.webRequest.onBeforeRequest.addListener(onRequestDelete, {
+  urls: [`https://projects.zoho.com/*/deletetodotask.do`],
+  types: ["xmlhttprequest"]
+},
+['requestBody']); //webRequest done (delete)
 
 function getCurrentTab() {
   return new Promise((resolve) => {
@@ -186,6 +201,55 @@ function findRemovedOwners(currentData, initData) {
   );
 }
 
+function onRequestDelete(details) {
+	// Remove from storage and send data to G-calendar
+	
+	//get task data
+	let reqData = details && details.requestBody && details.requestBody.formData;
+	if (!reqData)
+		return; // bad request
+	
+	if (!reqData.projId || !reqData.ttaskid || !reqData.ttaskid.length || !reqData.projId.length)
+		return // bad request
+	
+	let taskId = reqData.projId[0] + reqData.ttaskid[0]
+	// delete task from storage & G-calendar
+	removeFromGcalendarById(taskId, reqData.projId[0], reqData.ttaskid[0]);
+	
+	// dete task from storage
+	ExStorage.deleteTask(taskId)
+} // onRequestDelete
+
+async function removeFromGcalendarById(taskId, projId, ttaskId) {
+	// delete task from storage & G-calendar
+	
+	// get task from storage
+	console.log('getting task to delete')
+	let task = await ExStorage.getTask(taskId);
+	console.log(task);
+	
+	if (!task)
+		return removeTaskForAllUsers(projId, ttaskId); // could not find task
+	
+	// remove task from G-Calendar
+	removeFromGcalendar(task.usersEmail, task);
+	
+} //removeFromGcalendarById
+
+async function removeTaskForAllUsers(projId, ttaskId){
+ /***
+ * @desc Search for all the user calendats for task and remove it
+ */
+	
+  // get all calendars
+  let gCalendars = await Gcalendar.Requests.Getters.calendarList();
+
+  if (!gCalendars)
+	  return;
+  // for each calendar search and remove task
+  removeFromGcalendar(gCalendars, {url: `taskdetail/${projId}//${ttaskId}`});
+}
+
 function onWebRequestCompleted(details) {
 
   sendMessageToDom({ event: "task-updated" }, function (domData) {
@@ -222,6 +286,9 @@ async function callGcalendarApi(domData, usersToRemove) {
     console.log('not enough data for google calledar');
     return;
   }
+	
+  // Update task in storage
+  ExStorage.addOrUpdateTask(domData);
 
   for (let userEmail of changedDomData.usersEmail) {
 
@@ -251,6 +318,8 @@ async function removeFromGcalendar(usersToRemove, data) {
     return;
 
   for (let emailToRemove of usersToRemove) {
+	  if (emailToRemove.length < 1)
+		  continue; // ignore empty string
 
     // get G-calendar event 
     let gEventToRemove = await getGoogleEvent(emailToRemove, data);

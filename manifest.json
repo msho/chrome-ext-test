@@ -31,7 +31,9 @@
     "storage",
     "contextMenus",
     "webRequest",
-    "https://projects.zoho.com/*/updateaction.do"
+    "https://projects.zoho.com/*/updateaction.do",
+	"https://projects.zoho.com/*/deletetodotask.do"
+	  
   ],
   "oauth2": {
     "client_id": "302170307712-96acdij9nirukkm7mhgprmmrd2evmil7.apps.googleusercontent.com",
