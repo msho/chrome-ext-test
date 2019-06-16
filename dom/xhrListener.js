@@ -195,10 +195,6 @@
       chrome.runtime.sendMessage({ type: 'changed-dom', data: objRet });
     }
 
-    //Tell bg to look if next page is valid? (and store task id if not in url). maybe chage url and add id if needed
-    console.log(window.location.href);
-    //pushState({},'',objRet.url);
-
     return finishScrape(responseContainingEle);
 
   } // scrapeData
