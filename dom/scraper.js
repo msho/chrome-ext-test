@@ -14,9 +14,43 @@ class Scraper {
         return null;
     } // getLabelField
 
-    static getDomData() {
+    static async getEventUrl() {
+        let url = window.location.href;
+        if (url.indexOf('taskdetail/'))
+            return url;
+
+        // url has not updated correctly - zoho bug
+
+        // task id
+        let taskId = Scraper.getTaskId();
+
+        //proj id
+        let projId = Scraper.getProjectId();
+        if (!projId)
+            return null;
+        
+        // taskList id
+        let taskListId = Scraper.getTaskListId();
+        if (!taskListId)
+            return null;
+
+        let portalUrl = await ExStorage.get('portalUrl');
+        let taskdetailPage = await ExStorage.get('task-page');
+        
+        return `https://projects.zoho.com/${portalUrl}#${taskdetailPage}${projId}/${taskListId}/${taskId}`;
+    }
+
+    static getTaskId(){
+        let secTaskId = document.getElementById('task_cust_fields').firstElementChild.id;
+        if (!secTaskId)
+            return null;
+
+        return secTaskId.substring('sec-'.length, secTaskId.length);
+    }
+
+    static async getDomData() {
         return {
-            url: window.location.href,
+            url: await Scraper.getEventUrl(),
             title: Scraper.getTitle(),
             startDate: Scraper.getStartDate(),
             dueDate: Scraper.getDueDate(),
@@ -40,6 +74,18 @@ class Scraper {
             return null;
 
         return arrHash[1];
+    }
+
+    static getTaskListId() {
+        let urlHash = window.location.href;
+        if (!urlHash)
+            return null;
+
+        let arrHash = location.hash.split('/');
+        if (arrHash.length < 3)
+            return null;
+
+        return arrHash[2];
     }
 
     static getProjNameFromId() {

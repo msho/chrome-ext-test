@@ -26,8 +26,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         displayMessage(request.text, request.type);
 
     } else if (request.event === 'task-updated') {
-        setTimeout(function () {
-            sendResponse(Scraper.getDomData());
+        setTimeout(async function () {
+            let domData = await Scraper.getDomData();
+            sendResponse(domData);
         }, 300);
 
         // tells the background reciever that a response would be sent.
@@ -87,11 +88,11 @@ function onCalendarReady() {
     //handleRemoveFromCalendar();
 }
 
-function onTaskReady() {
+async function onTaskReady() {
     console.log(`is task-detail ready: true`);
     chrome.runtime.sendMessage({ type: 'action-icon', isTaskDetail: true });
 
-    let domInit = Scraper.getDomData();
+    let domInit = await Scraper.getDomData();
     console.log(domInit);
     chrome.runtime.sendMessage({ type: 'init-dom', data: domInit });
 
@@ -100,95 +101,7 @@ function onTaskReady() {
     if (!domDelete)
         return;
 
-	/*
-    domDelete.removeEventListener('mouseup', onPressDelete);
-    domDelete.addEventListener('mouseup', onPressDelete);
-	*/
 }
-/*
-function handleRemoveFromCalendar() {
-    
-
-    let arrDomTrash = document.querySelectorAll('span[title="Delete task"]');
-    for (let domTrash of arrDomTrash) {
-        //for each trash icon
-
-        //get onclick attr
-        let strOnclick = domTrash.getAttribute('onclick');
-        if (!strOnclick) continue;
-
-        // add function that call bg that an event was deleted
-        let delFunc = addDelFunction(strOnclick);
-
-        if (delFunc)
-            domTrash.addEventListener('click', delFunc);
-    }
-} //handleRemoveFromCalendar
-
-function addDelFunction(strOnclick) {
-    
-    // check if str has delete-events function
-    if (strOnclick.indexOf('deleteEvent') === -1)
-        return null;
-
-    // get event id from onclick string
-    let arrOnclick = strOnclick.split(',');
-    if (arrOnclick.length != 4)
-        return null;
-
-    
-    window.projId = arrOnclick[1];
-    window.taskId = arrOnclick[2];
-    if (!taskId || !projId)
-        return null;
-    
-    // trim the char ' (ampercent)
-    projId = projId.replace(/(^')|('$)/g, "");
-    taskId = taskId.replace(/(^')|('$)/g, "");
-
-    // TODO: do not return a function, need to add handler to the ok to delete button that comes after it (store those projId, taskId in global scope)
-    // returning a del-function that calls bg
-    return async function () {
-        let taskUrlHash = await ExStorage.get('task-page');
-        let portalUrl = await ExStorage.get('portal-url');
-        console.log('delete task from G-Calendar');
-        console.log(`https://projects.zoho.com/${portalUrl}#${taskUrlHash}${projId}//${taskId}`);
-
-        chrome.runtime.sendMessage({
-            type: 'remove-all-tasks',
-            data: {
-                url: `https://projects.zoho.com/${portalUrl}#${taskUrlHash}${projId}//${taskId}`
-            }
-        }); // send message to bg
-    }
-}
-
-
-function onPressDelete() {
-    // shows popup for user. set timeout wait that the popup is created
-    setTimeout(() => {
-        let okButton = document.getElementById('button1');
-        if (okButton) {
-            okButton.removeEventListener('mouseup', onPressOkDelete);
-            okButton.addEventListener('mouseup', onPressOkDelete);
-        }
-    }, 100);
-
-} // onPressDelete
-
-function onPressOkDelete() {
-    // send message to bg to remove task from G-calendar
-    console.log('delete task from G-Calendar');
-
-    chrome.runtime.sendMessage({
-        type: 'remove-task',
-        data: {
-            usersEmail: Scraper.getUsersEmail(),
-            url: location.href
-        }
-    }); // send message to bg
-}
-*/
 
 function onNotTaskPage() {
     console.log(`is task-detail ready: false`);

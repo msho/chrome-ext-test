@@ -1,9 +1,3 @@
-/* TODO: 
-* * set error and ok message after deleting
-* * Check all cases of adding and deleting with proj name
-* * Pulish & send it
-*/
-
 let initDomData, changedDomData;
 
 chrome.runtime.onInstalled.addListener(function () {
@@ -73,11 +67,11 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
   } else if (request.type === 'changed-dom') {
     // get dom updated data
-    callGcalendarApi(request.data)
+    callGcalendarApi(request.data, null, sender.tab.id)
 
   } else if (request.type === 'remove-task') {
     // user clicked on remove task
-    removeFromGcalendar(request.data.usersEmail, request.data);
+    removeFromGcalendar(request.data.usersEmail, request.data, sender.tab.id);
 
   } else {
     // unkown request type
@@ -104,7 +98,7 @@ chrome.webRequest.onBeforeRequest.addListener(onRequestDelete, {
   urls: [`https://projects.zoho.com/*/deletetodotask.do`],
   types: ["xmlhttprequest"]
 },
-['requestBody']); //webRequest done (delete)
+  ['requestBody']); //webRequest done (delete)
 
 function getCurrentTab() {
   return new Promise((resolve) => {
@@ -202,52 +196,52 @@ function findRemovedOwners(currentData, initData) {
 }
 
 function onRequestDelete(details) {
-	// Remove from storage and send data to G-calendar
-	
-	//get task data
-	let reqData = details && details.requestBody && details.requestBody.formData;
-	if (!reqData)
-		return; // bad request
-	
-	if (!reqData.projId || !reqData.ttaskid || !reqData.ttaskid.length || !reqData.projId.length)
-		return // bad request
-	
-	let taskId = reqData.projId[0] + reqData.ttaskid[0]
-	// delete task from storage & G-calendar
-	removeFromGcalendarById(taskId, reqData.projId[0], reqData.ttaskid[0]);
-	
-	// dete task from storage
-	ExStorage.deleteTask(taskId)
+  // Remove from storage and send data to G-calendar
+
+  //get task data
+  let reqData = details && details.requestBody && details.requestBody.formData;
+  if (!reqData)
+    return; // bad request
+
+  if (!reqData.projId || !reqData.ttaskid || !reqData.ttaskid.length || !reqData.projId.length)
+    return // bad request
+
+  let taskId = reqData.projId[0] + reqData.ttaskid[0]
+  // delete task from storage & G-calendar
+  removeFromGcalendarById(taskId, reqData.projId[0], reqData.ttaskid[0]);
+
+  // dete task from storage
+  ExStorage.deleteTask(taskId)
 } // onRequestDelete
 
 async function removeFromGcalendarById(taskId, projId, ttaskId) {
-	// delete task from storage & G-calendar
-	
-	// get task from storage
-	console.log('getting task to delete')
-	let task = await ExStorage.getTask(taskId);
-	console.log(task);
-	
-	if (!task)
-		return removeTaskForAllUsers(projId, ttaskId); // could not find task
-	
-	// remove task from G-Calendar
-	removeFromGcalendar(task.usersEmail, task);
-	
+  // delete task from storage & G-calendar
+
+  // get task from storage
+  console.log('getting task to delete')
+  let task = await ExStorage.getTask(taskId);
+  console.log(task);
+
+  if (!task)
+    return removeTaskForAllUsers(projId, ttaskId); // could not find task
+
+  // remove task from G-Calendar
+  removeFromGcalendar(task.usersEmail, task);
+
 } //removeFromGcalendarById
 
-async function removeTaskForAllUsers(projId, ttaskId){
- /***
- * @desc Search for all the user calendats for task and remove it
- */
-	
+async function removeTaskForAllUsers(projId, ttaskId) {
+  /***
+  * @desc Search for all the user calendats for task and remove it
+  */
+
   // get all calendars
   let gCalendars = await Gcalendar.Requests.Getters.calendarList();
 
   if (!gCalendars)
-	  return;
+    return;
   // for each calendar search and remove task
-  removeFromGcalendar(gCalendars, {url: `taskdetail/${projId}//${ttaskId}`});
+  removeFromGcalendar(gCalendars, { url: `taskdetail/${projId}//${ttaskId}` });
 }
 
 function onWebRequestCompleted(details) {
@@ -275,7 +269,7 @@ function onWebRequestCompleted(details) {
   }); // sendMessageToDom
 } // onWebRequestCompleted
 
-async function callGcalendarApi(domData, usersToRemove) {
+async function callGcalendarApi(domData, usersToRemove, tabId) {
   /**
    * Search for event in the Google Calendar,
    * * if found, edit it, otherwise, create new Google Caledar event
@@ -286,11 +280,13 @@ async function callGcalendarApi(domData, usersToRemove) {
     console.log('not enough data for google calledar');
     return;
   }
-	
+
   // Update task in storage
   ExStorage.addOrUpdateTask(domData);
 
   for (let userEmail of changedDomData.usersEmail) {
+    if (userEmail.trim().length === 0)
+      continue;
 
     // get Google-Calendar event
     let gEvent = await getGoogleEvent(userEmail, changedDomData);
@@ -306,20 +302,26 @@ async function callGcalendarApi(domData, usersToRemove) {
       //some error
       console.error('weired response from google api: ');
 
+      // send error message to dom
+      sendMessageToDom({
+        event: 'alert',
+        text: `Could not access user ${userEmail}`
+      }, undefined, tabId);
+
     } // if calendar event exist?
   } // for each user owner
 
-  removeFromGcalendar(usersToRemove, changedDomData);
+  removeFromGcalendar(usersToRemove, changedDomData, tabId);
 
 } // callGcalendarApi
 
-async function removeFromGcalendar(usersToRemove, data) {
+async function removeFromGcalendar(usersToRemove, data, tabId) {
   if (!usersToRemove || !usersToRemove.length)
     return;
 
   for (let emailToRemove of usersToRemove) {
-	  if (emailToRemove.length < 1)
-		  continue; // ignore empty string
+    if (emailToRemove.length < 1)
+      continue; // ignore empty string
 
     // get G-calendar event 
     let gEventToRemove = await getGoogleEvent(emailToRemove, data);
@@ -330,6 +332,11 @@ async function removeFromGcalendar(usersToRemove, data) {
 
     } else {
       console.log(`did not found this event ${data.url} at ${emailToRemove}. Cannot remove event`);
+
+      sendMessageToDom({
+        event: 'alert',
+        text: `Could remove event from ${emailToRemove}.<br>Maybe not exist or permissions problems?`
+      }, undefined, tabId);
     }
 
   } //for each user owner to remove 
