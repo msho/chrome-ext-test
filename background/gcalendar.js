@@ -64,16 +64,16 @@ let Gcalendar = {
 
             calendarList: function () {
                 console.log(`getting all user calendars...`);
-				return new Promise(res => {
-                xhrWithAuth(
-                    'GET',
-                    'https://www.googleapis.com/calendar/v3/users/me/calendarList',
-                    null, // no body
-                    function(status,response) {
-						//resolve function
-						return res(Gcalendar.Responses.calenderList(status, response));
-					}); // xhrWithAuth
-				}); // Promise
+                return new Promise(res => {
+                    xhrWithAuth(
+                        'GET',
+                        'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+                        null, // no body
+                        function (status, response) {
+                            //resolve function
+                            return res(Gcalendar.Responses.calenderList(status, response));
+                        }); // xhrWithAuth
+                }); // Promise
             } // Getters.calendarList
 
         }   // Getters
@@ -119,24 +119,24 @@ let Gcalendar = {
     }, //Gcalendar.Setters
 
     Responses: {
-		calenderList: function (status, response) {
-			if (status < 200 || status > 300) {
-				console.error(`error: ${status} \n ${response}`);
-				sendMessageToDom({
-					event: 'alert', type: 'error',
-					text: `Error from G-Calendar:  ${status}<div> ${response} </div>`
-				});
-				return;
-			} // if error
-			
-			if (response) {
-				let objResp = JSON.parse(response);
-				console.log('response from google calendar api: ');
-				console.log(objResp);
-				return objResp.items.map(i=> i.id); // return array of emails
-			}
-		}, // Responses.calenderList
-		
+        calenderList: function (status, response) {
+            if (status < 200 || status > 300) {
+                console.error(`error: ${status} \n ${response}`);
+                sendMessageToDom({
+                    event: 'alert', type: 'error',
+                    text: `Error from G-Calendar:  ${status}<div> ${response} </div>`
+                });
+                return;
+            } // if error
+
+            if (response) {
+                let objResp = JSON.parse(response);
+                console.log('response from google calendar api: ');
+                console.log(objResp);
+                return objResp.items.map(i => i.id); // return array of emails
+            }
+        }, // Responses.calenderList
+
         event: function (status, response) {
 
             if (!response)
@@ -236,12 +236,12 @@ function handleResponseStatus(status, type, resp) {
 
     if (status < 200 || status > 300) {
         console.error(`error: ${status} \n ${resp}`);
-		
-		if (type !== 'get-event')
-			sendMessageToDom({
-				event: 'alert', type: 'error',
-				text: `Error from G-Calendar:  ${status}<div> ${resp} </div>`
-			});
+
+        if (type !== 'get-event')
+            sendMessageToDom({
+                event: 'alert', type: 'error',
+                text: `Error from G-Calendar:  ${status}<div> ${resp} </div>`
+            });
         return;
     }
     if (resp) {

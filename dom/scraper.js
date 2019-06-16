@@ -28,7 +28,7 @@ class Scraper {
         let projId = Scraper.getProjectId();
         if (!projId)
             return null;
-        
+
         // taskList id
         let taskListId = Scraper.getTaskListId();
         if (!taskListId)
@@ -36,11 +36,11 @@ class Scraper {
 
         let portalUrl = await ExStorage.get('portalUrl');
         let taskdetailPage = await ExStorage.get('task-page');
-        
+
         return `https://projects.zoho.com/${portalUrl}#${taskdetailPage}${projId}/${taskListId}/${taskId}`;
     }
 
-    static getTaskId(){
+    static getTaskId() {
         let secTaskId = document.getElementById('task_cust_fields').firstElementChild.id;
         if (!secTaskId)
             return null;
